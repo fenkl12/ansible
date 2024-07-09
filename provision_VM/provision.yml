@@ -1,0 +1,61 @@
+---
+- name: Provision Proxmox VM
+  hosts: proxmox
+  gather_facts: no
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Debug Proxmox VM creation payload
+      debug:
+        msg:
+          vmid: "{{ proxmox_vm_id }}"
+          name: "{{ proxmox_vm_name }}"
+          cores: "{{ proxmox_cores }}"
+          memory: "{{ proxmox_memory }}"
+          net0: "virtio,bridge=vmbr0"
+          scsi0: "{{ proxmox_storage }}:32"
+          boot: "cdn"
+          serial0: "socket"
+          ostype: "l26"
+          cdrom: "{{ proxmox_iso_path }}"
+
+    - name: Create VM
+      uri:
+        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu"
+        method: POST
+        headers:
+          Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          vmid: "{{ proxmox_vm_id }}"
+          name: "{{ proxmox_vm_name }}"
+          cores: "{{ proxmox_cores }}"
+          memory: "{{ proxmox_memory }}"
+          net0: "virtio,bridge=vmbr0"
+          scsi0: "{{ proxmox_storage }}:32"
+          boot: "cdn"
+          serial0: "socket"
+          ostype: "l26"
+          cdrom: "{{ proxmox_iso_path }}"
+        validate_certs: no
+      register: create_vm
+
+    - name: Debug Create VM Response
+      debug:
+        var: create_vm
+
+    - name: Start VM
+      uri:
+        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vm_id }}/status/start"
+        method: POST
+        headers:
+          Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+          Content-Type: "application/json"
+        validate_certs: no
+      when: create_vm.status == 200
+      register: start_vm
+
+    - name: Debug Start VM Response
+      debug:
+        var: start_vm

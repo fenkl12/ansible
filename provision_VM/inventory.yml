@@ -1,0 +1,5 @@
+all:
+  hosts:
+    proxmox:
+      ansible_host: 10.0.2.100
+      ansible_connection: local
