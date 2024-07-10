@@ -6,13 +6,13 @@ proxmox_template_vm_id: 222
 proxmox_vm_name: "ansible-vm"
 proxmox_storage: "WD-1TB"
 proxmox_memory: 2048
-proxmox_cores: 3
+proxmox_cores: 2 # cannot be more than 2 as cores will double
+proxmox_storage_size: 20
 proxmox_iso_path: "WD-1TB:iso/ubuntu-22.04.1-live-server-amd64.iso" 
 proxmox_api_token_id: "root@pam!tony"
 proxmox_api_token_secret: "44d4808e-2633-4a11-89b1-26db819ce773"
 
 
-vm_current_ip: 10.0.222.202
 static_ip: 10.0.3.33/16
 gateway_ip: 10.0.0.1
 

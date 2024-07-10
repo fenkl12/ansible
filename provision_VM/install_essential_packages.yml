@@ -1,0 +1,23 @@
+---
+- name: Install essential packages
+  hosts: new_vm
+  gather_facts: yes
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Ensure the package cache is up to date
+      apt:
+        update_cache: yes
+
+    - name: Install essential packages
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - htop
+          - stow
+          - tmux
+          - ansible
+        state: present
+        update_cache: yes
