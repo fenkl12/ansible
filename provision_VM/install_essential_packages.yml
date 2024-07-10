@@ -1,5 +1,5 @@
 ---
-- name: Install essential packages
+- name: Install essential packages and Set timezone
   hosts: new_vm
   gather_facts: yes
   vars_files:
@@ -19,5 +19,11 @@
           - stow
           - tmux
           - ansible
+          - stow
         state: present
         update_cache: yes
+    
+    - name: Set timezone
+      become: yes
+      timezone:
+        name: "America/Toronto"
