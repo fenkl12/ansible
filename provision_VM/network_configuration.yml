@@ -23,12 +23,24 @@
         state: directory
         mode: '0755'
 
+    - name: Remove old netplan configurations
+      become: yes
+      file:
+        path: /etc/netplan/*.yaml
+        state: absent
+
+    - name: Remove old network interfaces configurations
+      become: yes
+      raw: |
+        sudo rm /etc/network/interfaces.d/* || true
+        sudo rm /etc/network/interfaces || true
+
     - name: Configure static IP address
       become: yes
       template:
         src: static_ip.j2
         dest: /etc/netplan/01-netcfg.yaml
-        mode: '0644'
+        mode: '0600'
 
     - name: Apply netplan configuration
       become: yes

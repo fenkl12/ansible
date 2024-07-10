@@ -6,4 +6,4 @@ network:
         - "{{ static_ip }}"
       gateway4: "{{ gateway_ip }}"
       nameservers:
-        addresses: "{{ dns_servers }}"
+        addresses: [8.8.8.8, 8.8.4.4]
