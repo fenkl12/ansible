@@ -1,0 +1,9 @@
+network:
+  ethernets:
+    ens18:
+      dhcp4: no
+      addresses:
+        - "{{ static_ip }}"
+      gateway4: "{{ gateway_ip }}"
+      nameservers:
+        addresses: "{{ dns_servers }}"
