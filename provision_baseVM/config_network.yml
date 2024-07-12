@@ -54,3 +54,14 @@
       service:
         name: systemd-networkd
         state: restarted
+
+- name: Remove base static IP address
+  hosts: new_static_ip_vm
+  gather_facts: no
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Remove the IP address
+      ansible.builtin.command: "ip addr del {{ static_ip_to_remove }}/16 dev {{ network_interface }}"
+
+#add task to restart vm

@@ -1,0 +1,38 @@
+---
+- name: Remove base static IP address
+  hosts: new_static_ip_vm
+  gather_facts: no
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Remove the IP address
+      ansible.builtin.command: "ip addr del {{ static_ip_to_remove }}/16 dev {{ network_interface }}"
+      ignore_errors: yes
+
+    - name: Stop the VM
+      uri:
+        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vm_id }}/status/stop"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+        body_format: json
+        body: "{}"
+        validate_certs: no
+        status_code: 200
+
+    - name: Wait for stop operation to complete
+      pause:
+        seconds: 10  # Adjust the time as needed
+
+    - name: Start the VM
+      uri:
+        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vm_id }}/status/start"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+        body_format: json
+        body: "{}"
+        validate_certs: no
+        status_code: 200

@@ -9,3 +9,9 @@ all:
       ansible_user: fenkil
       ansible_ssh_private_key_file: /home/fenkil/.ssh/id_rsa
       ansible_become: yes
+
+    new_static_ip_vm:
+      ansible_host: 10.0.3.33
+      ansible_user: fenkil
+      ansible_ssh_private_key_file: /home/fenkil/.ssh/id_rsa
+      ansible_become: yes

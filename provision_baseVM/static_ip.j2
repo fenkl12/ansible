@@ -1,6 +1,6 @@
 network:
   ethernets:
-    ens18:
+    "{{ network_interface }}":
       dhcp4: no
       addresses:
         - "{{ static_ip }}"
