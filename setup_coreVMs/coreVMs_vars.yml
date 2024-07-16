@@ -1,0 +1,7 @@
+---
+static_ip: 10.0.55.230/16
+static_ip_to_remove: 10.0.3.33
+gateway_ip: 10.0.0.1
+network_interface: "ens18"
+
+

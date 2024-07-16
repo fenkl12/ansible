@@ -13,7 +13,7 @@ proxmox_api_token_id: "root@pam!tony"
 proxmox_api_token_secret: "44d4808e-2633-4a11-89b1-26db819ce773"
 
 static_ip: 10.0.3.33/16
-static_ip_to_remove: 10.0.222.202
+static_ip_to_remove: 10.0.242.1
 gateway_ip: 10.0.0.1
 network_interface: "ens18"
 

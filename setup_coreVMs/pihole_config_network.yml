@@ -1,15 +1,10 @@
 ---
 - name: Configure static IP address
-  hosts: new_vm
+  hosts: new_static_ip_vm
   gather_facts: no
   vars_files:
-    - vars.yml
+    - coreVMs_vars.yml
   tasks:
-    - name: Ensure Python3 is installed
-      raw: |
-        sudo apt update
-        sudo apt install -y python3 python3-apt
-
     - name: Wait for VM to be accessible
       wait_for:
         host: "{{ ansible_host }}"
@@ -42,32 +37,11 @@
         dest: /etc/netplan/01-netcfg.yaml
         mode: '0600'
 
-    - name: Apply netplan configuration
-      become: yes
-      command: netplan apply
-      notify:
-        - Restart networking
-
-  handlers:
-    - name: Restart networking
-      become: yes
-      service:
-        name: systemd-networkd
-        state: restarted
-
-- name: Remove base static IP address
-  hosts: new_static_ip_vm
-  gather_facts: no
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: Remove the IP address
-      ansible.builtin.command: "ip addr del {{ static_ip_to_remove }}/16 dev {{ network_interface }}"
-
     - name: Reboot the system
       ansible.builtin.reboot:
         reboot_timeout: 20  # Time in seconds to wait for the system to reboot
         msg: "Reboot initiated by Ansible playbook"
+      ignore_errors: yes
 
 ## use ssh to confirm that ip address has been changed
 ## gui can be misleading
