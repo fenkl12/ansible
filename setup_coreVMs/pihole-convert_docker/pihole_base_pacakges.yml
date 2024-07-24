@@ -1,0 +1,39 @@
+---
+- name: Install Pi-hole
+  hosts: pihole
+  become: yes
+  vars_files:
+    - ../coreVMs_vars.yml
+
+  tasks:
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install wget
+      apt:
+        name: wget
+        state: present
+
+    - name: Download Pi-hole installation script
+      get_url:
+        url: "{{ pihole_install_url }}"
+        dest: "{{ pihole_install_script }}"
+        mode: '0755'
+
+    - name: Run Pi-hole installation script
+      expect:
+        command: sudo bash "{{ pihole_install_script }}"
+        responses:
+          "Enter your password:": "{{ pihole_password }}"
+          "Use DHCP to automatically configure network settings?": "Yes"
+          "Select interface:": "{{ network_interface }}"
+          "Do you want to install the web admin interface?": "Yes"
+          "Do you want to install the web server?": "Yes"
+          "Do you want to log queries?": "Yes"
+          "Select privacy level": "0"
+
+    - name: Clean up installation script
+      file:
+        path: "{{ pihole_install_script }}"
+        state: absent
