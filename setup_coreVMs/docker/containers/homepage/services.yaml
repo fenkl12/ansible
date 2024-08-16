@@ -4,8 +4,31 @@
 # icons found here https://github.com/walkxcode/dashboard-icons
 
 
+- Hypervisor:
+    - Promox:
+        icon: mdi:lock
+        href: https://10.0.2.100:8006
+        description: Proxmox.
 
-- Services:
+- Storage:
+    - TrueNAS:
+        icon: mdi:lock
+        href: https://10.0.203.171
+        description: TrueNAS.
+
+- Media:
+    - Jellyfin:
+        icon: mdi:music
+        href: http://10.0.3.100:8096
+        description: Audio Jellyfin.
+
+    - Plex:
+        icon: mdi:lock
+        href: http://10.0.3.10:32400
+        description: Plex.
+
+
+- Containers:
     - Gluetun:
         icon: mdi:lock
         href: http://10.0.55.10:6881
@@ -22,6 +45,10 @@
         icon: mdi:television
         href: http://10.0.55.10:8989
         description: Sonarr TV show manager.
+    - Radarr:
+        icon: mdi:movie
+        href: http://10.0.55.10:8989
+        description: Radarr Movie show manager.
     - Prowlarr:
         icon: mdi:rss
         href: http://10.0.55.10:9696
@@ -29,9 +56,19 @@
     - Whisparr:
         icon: mdi:music
         href: http://10.0.55.10:8989
-        description: Whisparr music manager.
-
-
+        description: Whisparr manager.
+    - Portainer:
+        icon: mdi:music
+        href: http://10.0.55.10:9000
+        description: Portainer.
+    - FreshRSS:
+        icon: mdi:rss
+        href: http://10.0.55.10:32768
+        description: RSS Feed.
+    - FocalBoard:
+        icon: mdi:rss
+        href: http://10.0.55.10:7000
+        description: kanban.
 
 # - Hypervisor:
 #     - Proxmox:

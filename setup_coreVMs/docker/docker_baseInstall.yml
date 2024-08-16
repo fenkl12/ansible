@@ -43,3 +43,38 @@
         name: docker
         enabled: yes
         state: started
+
+    - name: Set Docker Compose URL
+      set_fact:
+        docker_compose_url: "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-{{ ansible_system | lower }}-{{ ansible_architecture }}"
+
+    - name: Download Docker Compose binary
+      get_url:
+        url: "{{ docker_compose_url }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Check if Docker Compose symbolic link exists
+      stat:
+        path: /usr/bin/docker-compose
+      register: docker_compose_symlink
+
+    - name: Remove existing Docker Compose symbolic link if it exists
+      file:
+        path: /usr/bin/docker-compose
+        state: absent
+      when: docker_compose_symlink.stat.islnk is defined and docker_compose_symlink.stat.islnk
+
+    - name: Create symbolic link for Docker Compose
+      command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+      when: not docker_compose_symlink.stat.islnk
+
+
+    - name: Verify Docker Compose installation
+      command: docker-compose --version
+      register: docker_compose_version
+      changed_when: false
+
+    - name: Show Docker Compose version
+      debug:
+        msg: "Docker Compose version: {{ docker_compose_version.stdout }}"

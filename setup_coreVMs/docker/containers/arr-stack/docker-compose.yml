@@ -17,6 +17,7 @@ services:
       - 8989:8989 # Sonarr
       - 9696:9696 # Prowlarr
       - 6969:6969 # Whisparr
+      - 7878:7878 # Radarr
     volumes:
       - /home/fenkil/pcData/arr-stack:/gluetun
     environment:
@@ -57,12 +58,12 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Etc/UTC
+      - TZ=America/Toronto
       - AUTO_UPDATE=true #optional
       - RUN_OPTS= #optional
     volumes:
       - /home/fenkil/pcData/arr-stack/jackett/data:/config
-      - /home/fenkil/pcData/arr-stack/jackett/blackhole:/downloads
+      - /home/fenkil/pcData/arr-stack/jackett/downloads:/downloads
     restart: unless-stopped
 
   sonarr:
@@ -72,7 +73,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Etc/UTC
+      - TZ=America/Toronto
     volumes:
       - /home/fenkil/pcData/arr-stack/sonarr/data:/config
       - /home/fenkil/pcData/arr-stack/sonarr/tvseries:/tv #optional
@@ -86,7 +87,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Etc/UTC
+      - TZ=America/Toronto
     volumes:
       - /home/fenkil/pcData/arr-stack/prowlarr/data:/config
     restart: unless-stopped
@@ -98,9 +99,24 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Etc/UTC
+      - TZ=America/Toronto
     volumes:
       - /home/fenkil/pcData/arr-stack/whisparr/config:/config
       - /home/fenkil/pcData/arr-stack/whisparr/data:/data
       - /home/fenkil/pcData/arr-stack/whisparr/downloadclient-downloads:/downloads #optional
+    restart: unless-stopped
+
+  radarr:
+    image: hotio/radarr:nightly
+    container_name: radarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - /home/fenkil/pcData/arr-stack/radarr/config:/config
+      - /home/fenkil/pcData/arr-stack/radarr/data:/data
+      - /home/fenkil/pcData/arr-stack/radarr/movies:/movies #optional
+      - /home/fenkil/pcData/arr-stack/radarr/downloadclient-downloads:/downloads #optional
     restart: unless-stopped

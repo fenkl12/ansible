@@ -1,0 +1,14 @@
+version: "3"
+services:
+  freshrss:
+    image: lscr.io/linuxserver/freshrss:latest
+    container_name: freshrss
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - /home/fenkil/pcData/freshRSS/config:/config
+    ports:
+      - 32768:80
+    restart: always

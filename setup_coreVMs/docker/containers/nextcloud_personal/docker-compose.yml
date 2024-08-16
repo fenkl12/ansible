@@ -1,0 +1,45 @@
+version: '2'
+
+volumes:
+  nextcloud:
+  db:
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_PASSWORD=
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - /home/fenkil/pcData/nextcloud_personal/db:/var/lib/mysql
+
+  app:
+    image: nextcloud
+    container_name: nextcloud-personal
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+      - MYSQL_PASSWORD=
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=db
+
+    restart: always
+    ports:
+      - 8080:80
+    links:
+      - db
+    volumes:
+      - /home/fenkil/pcData/nextcloud_personal/nextcloud/nextcloud:/var/www/html
+      - /home/fenkil/pcData/nextcloud_personal/nextcloud/apps:/var/www/html/custom_apps
+      - /home/fenkil/pcData/nextcloud_personal/nextcloud/config:/var/www/html/config
+      - /home/fenkil/pcData/nextcloud_personal/nextcloud/data:/var/www/html/data
+

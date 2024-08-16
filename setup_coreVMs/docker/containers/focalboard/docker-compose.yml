@@ -1,0 +1,10 @@
+version: "2"
+services:
+  focalboard:
+    image: mattermost/focalboard:latest
+    container_name: focalboard
+    volumes:
+      - /home/fenkil/pcData/focalboard/fbdata:/data
+    ports:
+      - 7000:8000
+    restart: always
