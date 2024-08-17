@@ -1,0 +1,33 @@
+---
+- name: Clone Git Repository to Home Directory
+  hosts: new_static_ip_vm
+  become: yes
+
+  tasks:
+    - name: Ensure Git is installed
+      apt:
+        name: git
+        state: present
+      when: ansible_os_family == "Ubuntu"
+
+    - name: Clone the repository to the home directory
+      git:
+        repo: 'http://10.0.3.10:7000/fenkil/dotfiles.git'
+        dest: "/home/fenkil/dotfiles"
+        version: main
+        force: yes
+
+    - name: Find all playbooks in dotfiles/ansible_localPc
+      find:
+        paths: "/home/fenkil/dotfiles/ansible_localPc"
+        patterns: "*.yml"
+      register: playbooks
+
+    - name: Run the playbooks on the VM
+      ansible.builtin.command: ansible-playbook {{ item.path }}
+      with_items: "{{ playbooks.files }}"
+      args:
+        chdir: "/home/fenkil/dotfiles/ansible_localPc"
+      when: playbooks.matched > 0
+
+playbook has to run twice fro zsh to work not sure why 
