@@ -14,3 +14,8 @@ pihole_static_ip: 10.0.55.230/16
 docker_static_ip: 10.0.55.10/16
 
 portainer_local_data_path: "/home/{{ ansible_user }}/pcData/portainer"
+
+source_directory: "/home/fenkil/pcData"
+destination_base_directory: "/mnt/tn_promoxVMData"
+cron_job_name: "copy_to_nfs_share"
+cron_schedule: "*/1 * * * *"

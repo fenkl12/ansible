@@ -6,67 +6,106 @@
 
 - Hypervisor:
     - Promox:
-        icon: mdi:lock
+        icon: proxmox.png
         href: https://10.0.2.100:8006
         description: Proxmox.
 
 - Storage:
     - TrueNAS:
-        icon: mdi:lock
+        icon: truenas.png
         href: https://10.0.203.171
         description: TrueNAS.
-
+        widget:
+          type: truenas
+          url: https://10.0.203.171
+          username: admin # not required if using api key
+          password: # not required if using api key
+          enablePools: true # optional, defaults to false
+          nasType: scale # defaults to scale, must be set to 'core' if using enablePools with TrueNAS Core
 - Media:
     - Jellyfin:
-        icon: mdi:music
+        icon: jellyfin.png
         href: http://10.0.3.100:8096
-        description: Audio Jellyfin.
+        description: Movies & TV Shows Jellyfin.
+        widget:
+          type: jellyfin
+          url: http://10.0.3.100:8096
+          key: ae84feec59824e279cae6f88691a6716
+          enableBlocks: true # optional, defaults to false
+          enableNowPlaying: true # optional, defaults to true
+          enableUser: true # optional, defaults to false
+          showEpisodeNumber: true # optional, defaults to false
+          expandOneStreamToTwoRows: false # optional, defaults to true
 
+    - Jellyfin2:
+        icon: jellyfin.png
+        href: http://10.0.203.171:8096
+        description: Audio Jellyfin.
+        widget:
+          type: jellyfin
+          url: http://10.0.203.171:8096
+          key: 80f675566cfe480ea2a95fe3789d1d2c
+          enableBlocks: true # optional, defaults to false
+          enableNowPlaying: true # optional, defaults to true
+          enableUser: true # optional, defaults to false
+          showEpisodeNumber: true # optional, defaults to false
+          expandOneStreamToTwoRows: false # optional, defaults to true
     - Plex:
-        icon: mdi:lock
+        icon: plex.png
         href: http://10.0.3.10:32400
         description: Plex.
 
 
 - Containers:
     - Gluetun:
-        icon: mdi:lock
+        icon: gluetun.png
         href: http://10.0.55.10:6881
         description: VPN service container using Gluetun.
     - qBittorrent:
-        icon: mdi:download
+        icon: qbittorrent.png
         href: http://10.0.55.10:8085
         description: qBittorrent client with web UI.
     - Jackett:
-        icon: mdi:search-web
+        icon: jackett.png
         href: http://10.0.55.10:9117
         description: Jackett indexer service.
     - Sonarr:
-        icon: mdi:television
+        icon: sonarr.png
         href: http://10.0.55.10:8989
         description: Sonarr TV show manager.
     - Radarr:
-        icon: mdi:movie
+        icon: sonarr.png
         href: http://10.0.55.10:8989
         description: Radarr Movie show manager.
     - Prowlarr:
-        icon: mdi:rss
+        icon: prowlarr.png
         href: http://10.0.55.10:9696
         description: Prowlarr indexer manager.
     - Whisparr:
-        icon: mdi:music
+        icon: whisparr.png
         href: http://10.0.55.10:8989
         description: Whisparr manager.
     - Portainer:
-        icon: mdi:music
+        icon: portainer.png
         href: http://10.0.55.10:9000
         description: Portainer.
+        widget:
+          type: portainer
+          url: http://10.0.55.10:9000
+          env: 1
+          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
+
     - FreshRSS:
-        icon: mdi:rss
+        icon: freshrss.png
         href: http://10.0.55.10:32768
         description: RSS Feed.
+        widget:
+          type: freshrss
+          url: http://10.0.55.10:32768
+          username: username
+          password: password
     - FocalBoard:
-        icon: mdi:rss
+        icon: focalboard.png
         href: http://10.0.55.10:7000
         description: kanban.
 
@@ -276,4 +315,3 @@
 #         icon: https://shlink.io/images/shlink-logo-blue.svg
 #         href: "{{HOMEPAGE_VAR_SHLINK_URL}}"
 #         description: dashboard
-

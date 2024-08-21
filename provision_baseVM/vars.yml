@@ -25,7 +25,3 @@ nfs_mounts:
   - { name: "tn_media", path: "/mnt/tank/media" }
   - { name: "tn_promoxVMData", path: "/mnt/tank/backups/proxmox/dataOnly" }
 
-source_directory: "/home/fenkil"
-destination_base_directory: "/mnt/tn_promoxVMData"
-cron_job_name: "copy_to_nfs_share"
-cron_schedule: "*/1 * * * *"
