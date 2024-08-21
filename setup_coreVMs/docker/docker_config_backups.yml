@@ -1,0 +1,18 @@
+- name: Replace 'template' with hostname in the copy_to_nfs.sh script
+  hosts: docker
+  become: yes
+  tasks:
+    - name: Replace 'template' with hostname in /usr/local/bin/copy_to_nfs.sh
+      lineinfile:
+        path: /usr/local/bin/copy_to_nfs.sh
+        regexp: '(/mnt/tn_promoxVMData/)template/'
+        line: '\1{{ ansible_hostname }}/'
+        backrefs: yes
+      notify:
+        - Restart cron service
+
+  handlers:
+    - name: Restart cron service
+      service:
+        name: cron
+        state: restarted

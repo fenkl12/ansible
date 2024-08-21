@@ -19,7 +19,6 @@
           - stow
           - tmux
           - ansible
-          - stow
         state: present
         update_cache: yes
     

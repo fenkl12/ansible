@@ -30,4 +30,8 @@
         chdir: "/home/fenkil/dotfiles/ansible_localPc"
       when: playbooks.matched > 0
 
+    - name: Change shell to Zsh for user fenkil
+      command: chsh -s $(which zsh)
+      register: chsh_result
+
 playbook has to run twice fro zsh to work not sure why 
