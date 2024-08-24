@@ -1,0 +1,84 @@
+---
+- name: Install Jellyfin and Mount Music Folders
+  hosts: jellyfinAudio
+  become: yes
+
+  vars:
+    pcdata_directory: "/home/fenkil/pcData"
+    jellyfin_mount_dir: "/jellyfin_music"
+
+  tasks:
+
+    - name: Install curl and gnupg
+      apt:
+        name:
+          - curl
+          - gnupg
+        state: present
+
+    - name: Install software-properties-common if needed (Ubuntu only)
+      apt:
+        name: software-properties-common
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Enable Universe repository (Ubuntu only)
+      command: >
+        add-apt-repository -y universe
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Create directory for Jellyfin GPG key
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download and install Jellyfin GPG key
+      shell: >
+        curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key |
+        gpg --dearmor -o /etc/apt/keyrings/jellyfin.gpg
+
+    - name: Add Jellyfin repository
+      shell: >
+        VERSION_OS="$( awk -F'=' '/^ID=/{ print $NF }' /etc/os-release )" &&
+        VERSION_CODENAME="$( awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release )" &&
+        DPKG_ARCHITECTURE="$( dpkg --print-architecture )" &&
+        echo "Types: deb" > /etc/apt/sources.list.d/jellyfin.sources &&
+        echo "URIs: https://repo.jellyfin.org/${VERSION_OS}" >> /etc/apt/sources.list.d/jellyfin.sources &&
+        echo "Suites: ${VERSION_CODENAME}" >> /etc/apt/sources.list.d/jellyfin.sources &&
+        echo "Components: main" >> /etc/apt/sources.list.d/jellyfin.sources &&
+        echo "Architectures: ${DPKG_ARCHITECTURE}" >> /etc/apt/sources.list.d/jellyfin.sources &&
+        echo "Signed-By: /etc/apt/keyrings/jellyfin.gpg" >> /etc/apt/sources.list.d/jellyfin.sources
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Jellyfin
+      apt:
+        name: jellyfin
+        state: present
+
+    - name: Ensure Jellyfin has access to the pcData directory
+      file:
+        path: "{{ pcdata_directory }}"
+        state: directory
+        owner: root
+        group: root
+        recurse: yes
+        mode: '0755'
+
+    - name: Enable and start Jellyfin service
+      systemd:
+        name: jellyfin
+        enabled: yes
+        state: started
+
+
+    - name: Enable and start Jellyfin service
+      systemd:
+        name: jellyfin
+        enabled: yes
+        state: started
+
+cannot mount pcdata_directory

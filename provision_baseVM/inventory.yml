@@ -1,6 +1,4 @@
 all:
-  vars_files:
-    - vault.yml
   hosts:
     proxmox:
       ansible_host: 10.0.2.100

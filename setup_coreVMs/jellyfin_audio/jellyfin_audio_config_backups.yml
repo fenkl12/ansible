@@ -1,12 +1,12 @@
 ---
 - name: Configure autofs for NFS mounts and set up cron job
-  hosts: docker
+  hosts: jellyfinAudio
   become: yes
   vars_files:
     - ../coreVMs_vars.yml
 
   tasks:
-
+        
     - name: Ensure the source directory exists
       file:
         path: "{{ source_directory }}"
@@ -16,7 +16,7 @@
       file:
         path: "{{ destination_base_directory }}/{{ ansible_hostname }}"
         state: directory
-
+      become: yes
 
     - name: Create the script to copy contents to NFS share with hostname
       copy:

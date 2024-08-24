@@ -1,0 +1,58 @@
+---
+- name: Configure autofs for NFS mounts and set up cron job
+  hosts: new_static_ip_vm
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+
+    - name: Install autofs
+      apt:
+        name: autofs
+        state: present
+        update_cache: yes
+
+    - name: Ensure autofs configuration in /etc/auto.master
+      lineinfile:
+        path: /etc/auto.master
+        line: "{{ auto_master_config }}"
+        state: present
+
+    - name: Create /etc/auto.nfs if it does not exist
+      file:
+        path: /etc/auto.nfs
+        state: touch
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Ensure NFS mount points are configured in /etc/auto.nfs
+      lineinfile:
+        path: /etc/auto.nfs
+        line: "{{ item.name }} -fstype=nfs,rw {{ nfs_server_ip }}:{{ item.path }}"
+        state: present
+      loop: "{{ nfs_mounts }}"
+
+    - name: Set permissions on /etc/auto.nfs
+      file:
+        path: /etc/auto.nfs
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Restart autofs service
+      service:
+        name: autofs
+        state: restarted
+
+    - name: Ensure the source directory exists
+      file:
+        path: "{{ source_directory }}"
+        state: directory
+
+    - name: Ensure the destination directory exists with hostname
+      file:
+        path: "{{ destination_base_directory }}/{{ ansible_hostname }}"
+        state: directory
+
