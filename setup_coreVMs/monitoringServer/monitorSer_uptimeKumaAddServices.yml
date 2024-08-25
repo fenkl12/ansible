@@ -1,0 +1,7 @@
+---
+- name: Install Uptime Kuma and Create Symbolic Link for Data Directory
+  hosts: monitoringServer
+  become: yes
+  tasks:
+
+   

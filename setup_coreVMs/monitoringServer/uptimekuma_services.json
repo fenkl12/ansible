@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Google",
+        "url": "https://www.google.com",
+        "type": "http",
+        "method": "GET",
+        "interval": 60
+    },
+    {
+        "name": "GitHub",
+        "url": "https://www.github.com",
+        "type": "http",
+        "method": "GET",
+        "interval": 60
+    },
+    {
+        "name": "Your Service 1",
+        "url": "http://your-service-1-url",
+        "type": "http",
+        "method": "GET",
+        "interval": 60
+    },
+    {
+        "name": "Your Service 2",
+        "url": "http://your-service-2-url",
+        "type": "http",
+        "method": "GET",
+        "interval": 60
+    }
+]

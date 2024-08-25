@@ -1,0 +1,120 @@
+---
+- name: Install Uptime Kuma and Create Symbolic Link for Data Directory
+  hosts: monitoringServer
+  become: yes
+  tasks:
+
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install dependencies
+      apt:
+        name:
+          - git
+          - curl
+          - build-essential
+
+        state: present
+
+    - name: Install Node.js (using Nodesource)
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        apt-get install -y nodejs
+      args:
+        executable: /bin/bash
+    - name: Clone Uptime Kuma repository
+      git:
+        repo: 'https://github.com/louislam/uptime-kuma.git'
+        dest: /opt/uptime-kuma
+        version: master
+
+    - name: Install npm dependencies
+      command: npm install
+      args:
+        chdir: /opt/uptime-kuma
+
+    - name: Build Uptime Kuma
+      command: npm run build
+      args:
+        chdir: /opt/uptime-kuma
+
+    - name: Create data directory if it does not exist
+      file:
+        path: /opt/uptime-kuma/data
+        state: directory
+
+    - name: Create symbolic link for data directory
+      file:
+        src: /opt/uptime-kuma/data
+        dest: /var/lib/uptime-kuma
+        state: link
+
+    - name: Clone Uptime Kuma repository
+      git:
+        repo: https://github.com/louislam/uptime-kuma.git
+        dest: /opt/uptime-kuma
+        version: master
+
+    - name: Install Uptime Kuma dependencies
+      command: npm install
+      args:
+        chdir: /opt/uptime-kuma
+
+    - name: Ensure original data directory exists
+      file:
+        path: /opt/uptime-kuma/data
+        state: directory
+        owner: fenkil
+        group: fenkil
+        mode: '0755'
+
+    - name: Create symbolic link in home directory pointing to original data directory
+      file:
+        src: /opt/uptime-kuma
+        dest: /home/fenkil/pcData/uptimekuma
+        state: link
+        owner: fenkil
+        group: fenkil
+
+    - name: Start Uptime Kuma
+      command: npm run start
+      args:
+        chdir: /opt/uptime-kuma
+      async: 30
+      poll: 0
+
+    - name: Create systemd service for Uptime Kuma
+      copy:
+        dest: /etc/systemd/system/uptime-kuma.service
+        content: |
+          [Unit]
+          Description=Uptime Kuma
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/npm start --prefix /opt/uptime-kuma
+          WorkingDirectory=/opt/uptime-kuma
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd to recognize Uptime Kuma service
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Uptime Kuma service
+      systemd:
+        name: uptime-kuma
+        enabled: yes
+        state: started
+
+    - name: Wait for Uptime Kuma to start
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 3001
+        state: started
+        delay: 10
+        timeout: 300

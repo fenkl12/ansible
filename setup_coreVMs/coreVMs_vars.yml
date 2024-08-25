@@ -12,15 +12,21 @@ pihole_static_ip: 10.0.55.230/16
 
 
 docker_static_ip: 10.0.55.10/16
-jellyfin_audio_static_ip: 10.0.77.10/16
+jellyfin_static_ip: 10.0.77.10/16
+monitoringServer_static_ip: 10.0.88.10/16
+
 
 portainer_local_data_path: "/home/{{ ansible_user }}/pcData/portainer"
-
-
-
 
 
 source_directory: "/home/fenkil/pcData"
 destination_base_directory: "/mnt/tn_proxmoxVMData"
 cron_job_name: "copy_to_nfs_share"
 cron_schedule: "*/1 * * * *"
+
+gitea_version: "1.20.3"  # Update to the latest version if necessary
+gitea_user: "fenkil"
+gitea_group: "fenkil"
+gitea_home: "/home/fenkil/pcData"
+gitea_binary: "/usr/local/bin/gitea"
+gitea_service: "/etc/systemd/system/gitea.service"

@@ -1,0 +1,49 @@
+---
+- name: Configure autofs for NFS mounts and set up cron job
+  hosts: gitServer
+  become: yes
+  vars_files:
+    - ../coreVMs_vars.yml
+
+  tasks:
+        
+    - name: Ensure the source directory exists
+      file:
+        path: "{{ source_directory }}"
+        state: directory
+
+    - name: Ensure the destination directory exists with hostname
+      file:
+        path: "{{ destination_base_directory }}/{{ ansible_hostname }}"
+        state: directory
+      become: yes
+
+    - name: Create the script to copy contents to NFS share with hostname
+      copy:
+        dest: /usr/local/bin/copy_to_nfs.sh
+        content: |
+          #!/bin/bash
+          rsync -av --delete {{ source_directory }}/ {{ destination_base_directory }}/{{ ansible_hostname }}
+        mode: '0777'
+
+    - name: Set up a cron job to run the copy script every minute
+      cron:
+        name: "{{ cron_job_name }}"
+        minute: "{{ cron_schedule.split()[0] }}"
+        hour: "{{ cron_schedule.split()[1] }}"
+        day: "{{ cron_schedule.split()[2] }}"
+        month: "{{ cron_schedule.split()[3] }}"
+        weekday: "{{ cron_schedule.split()[4] }}"
+        job: "/usr/local/bin/copy_to_nfs.sh > /dev/null 2>&1"
+
+    - name: Restart cron service to apply changes (if necessary)
+      service:
+        name: cron
+        state: restarted
+        enabled: yes
+
+  handlers:
+    - name: Restart autofs
+      service:
+        name: autofs
+        state: restarted
