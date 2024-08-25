@@ -5,7 +5,7 @@ all:
       ansible_user: fenkil
       ansible_become: yes
 
-    jellyfinAudio:
+    jellyfin:
       ansible_host: 10.0.77.10
       ansible_user: fenkil
       ansible_become: yes

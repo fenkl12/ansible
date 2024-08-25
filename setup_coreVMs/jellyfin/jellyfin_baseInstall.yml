@@ -1,6 +1,6 @@
 ---
-- name: Install Jellyfin and Symlink Music Folder
-  hosts: jellyfinAudio
+- name: Install Jellyfin, Audiobookshelf, and Symlink Music Folder
+  hosts: jellyfin
   become: yes
 
   vars:
@@ -20,7 +20,6 @@
     - name: Enable Universe repository (Ubuntu only)
       command: add-apt-repository -y universe
       when: ansible_distribution == "Ubuntu"
-
 
     - name: Remove existing Jellyfin GPG key directory if it exists
       file:
@@ -58,6 +57,20 @@
         name: jellyfin
         state: present
 
+    - name: Add Audiobookshelf GPG key and repository
+      shell: |
+        wget -O- https://advplyr.github.io/audiobookshelf-ppa/KEY.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/adb-archive-keyring.gpg
+        curl -s -o /etc/apt/sources.list.d/audiobookshelf.list https://advplyr.github.io/audiobookshelf-ppa/audiobookshelf.list
+
+    - name: Update apt cache after adding Audiobookshelf repository
+      apt:
+        update_cache: yes
+
+    - name: Install Audiobookshelf
+      apt:
+        name: audiobookshelf
+        state: present
+
     - name: Create media directory if it doesn't exist
       file:
         path: "{{ media_directory }}"
@@ -70,13 +83,29 @@
         dest: "{{ pcdata_directory }}/media"
         state: link
 
+    - name: Ensure jellyfin user owns the Jellyfin directories
+      file:
+        path: /var/lib/jellyfin
+        owner: jellyfin
+        group: jellyfin
+        recurse: yes
+
+    - name: Ensure jellyfin user owns the Jellyfin configuration
+      file:
+        path: /etc/jellyfin
+        owner: jellyfin
+        group: jellyfin
+        recurse: yes
+
     - name: Enable and start Jellyfin service
       systemd:
         name: jellyfin
         enabled: yes
         state: started
 
-    - name: Restart Jellyfin service
+
+    - name: Enable and start Audiobookshelf service
       systemd:
-        name: jellyfin
-        state: restarted
+        name: audiobookshelf
+        enabled: yes
+        state: started

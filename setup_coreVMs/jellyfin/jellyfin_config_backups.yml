@@ -1,6 +1,6 @@
 ---
 - name: Configure autofs for NFS mounts and set up cron job
-  hosts: jellyfinAudio
+  hosts: jellyfin
   become: yes
   vars_files:
     - ../coreVMs_vars.yml
