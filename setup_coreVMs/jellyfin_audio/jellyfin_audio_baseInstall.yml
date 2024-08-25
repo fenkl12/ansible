@@ -1,31 +1,32 @@
 ---
-- name: Install Jellyfin and Mount Music Folders
+- name: Install Jellyfin and Symlink Music Folder
   hosts: jellyfinAudio
   become: yes
 
   vars:
     pcdata_directory: "/home/fenkil/pcData"
-    jellyfin_mount_dir: "/jellyfin_music"
+    media_directory: "/media"
 
   tasks:
 
-    - name: Install curl and gnupg
+    - name: Install necessary packages
       apt:
         name:
           - curl
           - gnupg
+          - software-properties-common
         state: present
-
-    - name: Install software-properties-common if needed (Ubuntu only)
-      apt:
-        name: software-properties-common
-        state: present
-      when: ansible_distribution == "Ubuntu"
 
     - name: Enable Universe repository (Ubuntu only)
-      command: >
-        add-apt-repository -y universe
+      command: add-apt-repository -y universe
       when: ansible_distribution == "Ubuntu"
+
+
+    - name: Remove existing Jellyfin GPG key directory if it exists
+      file:
+        path: /etc/apt/keyrings
+        state: absent
+        force: yes
 
     - name: Create directory for Jellyfin GPG key
       file:
@@ -34,12 +35,10 @@
         mode: '0755'
 
     - name: Download and install Jellyfin GPG key
-      shell: >
-        curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key |
-        gpg --dearmor -o /etc/apt/keyrings/jellyfin.gpg
+      shell: curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | gpg --dearmor -o /etc/apt/keyrings/jellyfin.gpg
 
     - name: Add Jellyfin repository
-      shell: >
+      shell: |
         VERSION_OS="$( awk -F'=' '/^ID=/{ print $NF }' /etc/os-release )" &&
         VERSION_CODENAME="$( awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release )" &&
         DPKG_ARCHITECTURE="$( dpkg --print-architecture )" &&
@@ -59,26 +58,25 @@
         name: jellyfin
         state: present
 
-    - name: Ensure Jellyfin has access to the pcData directory
+    - name: Create media directory if it doesn't exist
       file:
-        path: "{{ pcdata_directory }}"
+        path: "{{ media_directory }}"
         state: directory
-        owner: root
-        group: root
-        recurse: yes
         mode: '0755'
 
+    - name: Create symbolic link for /media in pcData directory
+      file:
+        src: "{{ media_directory }}"
+        dest: "{{ pcdata_directory }}/media"
+        state: link
+
     - name: Enable and start Jellyfin service
       systemd:
         name: jellyfin
         enabled: yes
         state: started
 
-
-    - name: Enable and start Jellyfin service
+    - name: Restart Jellyfin service
       systemd:
         name: jellyfin
-        enabled: yes
-        state: started
-
-cannot mount pcdata_directory
+        state: restarted
