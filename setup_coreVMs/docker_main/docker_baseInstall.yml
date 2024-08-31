@@ -1,6 +1,6 @@
 ---
 - name: Install Docker on Ubuntu
-  hosts: docker
+  hosts: docker_main
   become: yes
   tasks:
     - name: Update apt package index
@@ -67,7 +67,7 @@
 
     - name: Create symbolic link for Docker Compose
       command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-      when: not docker_compose_symlink.stat.islnk
+      when: not docker_compose_symlink.stat.islnk is defined
 
 
     - name: Verify Docker Compose installation

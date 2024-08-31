@@ -1,17 +1,17 @@
 ---
 - name: Change Hostname
-  hosts: gitServer
+  hosts: ansibleTower
   become: yes
   tasks:
     - name: Change hostname
       hostname:
-        name: "gitServer"
+        name: "ansibleTower"
       
     - name: Update /etc/hosts with new hostname
       lineinfile:
         path: /etc/hosts
         regexp: '^127\.0\.1\.1\s+'
-        line: "127.0.1.1   gitServer"
+        line: "127.0.1.1   ansibleTower"
         
     - name: Reboot the system
       ansible.builtin.reboot:

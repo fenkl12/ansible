@@ -5,8 +5,8 @@ all:
       ansible_user: fenkil
       ansible_become: yes
 
-    gitServer:
-      ansible_host: 10.0.99.10
+    docker_main:
+      ansible_host: 10.0.55.10
       ansible_user: fenkil
       ansible_become: yes
 

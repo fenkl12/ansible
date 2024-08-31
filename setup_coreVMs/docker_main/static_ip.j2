@@ -3,7 +3,7 @@ network:
     "{{ network_interface }}":
       dhcp4: no
       addresses:
-        - "{{ jellyfin_audio_static_ip }}"
+        - "{{ docker_main_static_ip }}"
       gateway4: "{{ gateway_ip }}"
       nameservers:
         addresses: [8.8.8.8, 8.8.4.4]

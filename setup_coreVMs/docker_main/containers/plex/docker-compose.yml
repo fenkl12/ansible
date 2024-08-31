@@ -1,0 +1,18 @@
+---
+version: "2.1"
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex2
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - VERSION=docker
+
+    volumes:
+      - /home/fenkil/pcData/plex/config:/config
+      - /mnt/tn_media/Movies:/nfs_movies
+      - /mnt/tn_media/TVShows:/nfs_tvshows
+    restart: unless-stopped

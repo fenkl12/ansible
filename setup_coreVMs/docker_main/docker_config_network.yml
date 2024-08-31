@@ -3,7 +3,7 @@
   hosts: new_static_ip_vm
   gather_facts: no
   vars_files:
-    - coreVMs_vars.yml
+    - ../coreVMs_vars.yml
   tasks:
     - name: Wait for VM to be accessible
       wait_for:

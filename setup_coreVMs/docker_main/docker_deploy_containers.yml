@@ -1,6 +1,6 @@
 ---
 - name: Deploy Docker containers on target hosts
-  hosts: docker
+  hosts: docker_main
   become: yes
   vars:
     docker_compose_version: "3"

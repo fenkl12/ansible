@@ -5,8 +5,8 @@ all:
       ansible_user: fenkil
       ansible_become: yes
 
-    docker:
-      ansible_host: 10.0.55.10
+    docker_central:
+      ansible_host: 10.0.88.10
       ansible_user: fenkil
       ansible_become: yes
 

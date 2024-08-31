@@ -1,17 +1,17 @@
 ---
 - name: Change Hostname
-  hosts: docker
+  hosts: docker_central
   become: yes
   tasks:
     - name: Change hostname
       hostname:
-        name: "docker"
+        name: "dockerCentral"
       
     - name: Update /etc/hosts with new hostname
       lineinfile:
         path: /etc/hosts
         regexp: '^127\.0\.1\.1\s+'
-        line: "127.0.1.1   docker"
+        line: "127.0.1.1   dockerCentral"
         
     - name: Reboot the system
       ansible.builtin.reboot:
