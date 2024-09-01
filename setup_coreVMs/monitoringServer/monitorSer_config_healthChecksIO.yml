@@ -1,0 +1,23 @@
+---
+- name: Set up a cron job to run Healthchecks.io check every hour
+  hosts: monitoringServer
+  become: yes
+  vars_files:
+    - ../coreVMs_vars.yml
+
+  tasks:
+    - name: Ensure the Healthchecks.io check script is present
+      copy:
+        dest: /usr/local/bin/healthcheck.sh
+        content: |
+          #!/bin/bash
+          # Your Healthchecks.io ping URL
+          curl -fsS --retry 3 https://hc-ping.com/0aad16eb-21a0-4739-a0cc-4c9de5979f9d
+        mode: '0755'
+
+    - name: Create a cron job to run the Healthchecks.io check every hour
+      cron:
+        name: "Run Healthchecks.io check every hour"
+        job: "/usr/local/bin/healthcheck.sh"
+        minute: "0"
+        hour: "*"

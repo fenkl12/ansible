@@ -29,9 +29,35 @@
       args:
         chdir: "/home/fenkil/dotfiles/ansible_localPc"
       when: playbooks.matched > 0
+      ignore_errors: yes
 
     - name: Change shell to Zsh for user fenkil
-      command: chsh -s $(which zsh)
+      command: chsh -s /usr/bin/zsh fenkil
       register: chsh_result
+
+
+    - name: Add safe.directory configuration for the cloned repository
+      command: git config --global --add safe.directory /home/fenkil/dotfiles
+      become_user: fenkil
+
+    - name: Change ownership of the dotfiles directory to fenkil
+      file:
+        path: "/home/fenkil/dotfiles"
+        state: directory
+        recurse: yes
+        owner: fenkil
+        group: fenkil
+
+    - name: Add a cron job to pull the latest changes from the repository every Monday
+      cron:
+        name: "Git Pull for dotfiles"
+        user: fenkil
+        minute: 0
+        hour: 0
+        day: "*"
+        month: "*"
+        weekday: 1
+        job: "cd /home/fenkil/dotfiles && /usr/bin/git pull"
+
 
 #playbook has to run twice fro zsh to work not sure why 
