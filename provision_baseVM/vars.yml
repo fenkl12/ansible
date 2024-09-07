@@ -5,7 +5,7 @@ proxmox_vm_id: "{{ proxmox_vm_id }}"
 proxmox_vm_name: "{{ proxmox_vm_name }}"
 proxmox_template_vm_id: "{{ proxmox_template_vm_id }}"
 proxmox_storage: "SAN2TB"
-proxmox_memory: 2048
+proxmox_memory: 3096
 proxmox_cores: 2 # cannot be more than 2 as cores will double
 proxmox_iso_path: "SAN2TB:iso/ubuntu-24.04-live-server-amd64.iso" 
 proxmox_api_token_id: "root@pam!tony"
