@@ -9,7 +9,7 @@
       wait_for:
         host: "{{ ansible_host }}"
         port: 22
-        timeout: 300
+        timeout: 500
 
     - name: Create netplan configuration directory if it does not exist
       become: yes

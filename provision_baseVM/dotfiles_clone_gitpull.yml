@@ -60,4 +60,4 @@
         job: "cd /home/fenkil/dotfiles && /usr/bin/git pull"
 
 
-#playbook has to run twice fro zsh to work not sure why 
+#playbook has to run twice for zsh to work not sure why 
