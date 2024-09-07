@@ -11,8 +11,10 @@ echo "Starting the script..."
 ansible-playbook -i ansibleTower_inventory.yml ansibleTower_config_network.yml --extra-vars "ansible_become_pass=$sudo_pass"
 sleep 5
 
+ansible-playbook -i ansibleTower_inventory.yml ansibleTower_hostname.yml --extra-vars "ansible_become_pass=$sudo_pass"
+sleep 5
+
 ansible-playbook -i ansibleTower_inventory.yml ansibleTower_config_backups.yml --extra-vars "ansible_become_pass=$sudo_pass"
 sleep 5
 
-ansible-playbook -i ansibleTower_inventory.yml ansibleTower_hostname.yml --extra-vars "ansible_become_pass=$sudo_pass"
-sleep 5
+

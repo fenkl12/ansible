@@ -1,6 +1,6 @@
 ---
 - name: Install essential packages and Set timezone
-  hosts: new_vm
+  hosts: new_static_ip_vm
   gather_facts: yes
   vars_files:
     - vars.yml

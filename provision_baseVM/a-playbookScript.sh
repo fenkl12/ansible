@@ -1,11 +1,14 @@
 #!/bin/bash
 
 # Variables
-proxmox_vm_id=120
-proxmox_vm_name=dockerCentral
-proxmox_template_vm_id=501
-template_vm_ip=10.0.6.10
+proxmox_vm_id=130
+proxmox_vm_name=dockerMain
+proxmox_template_vm_id=502
+template_vm_ip=10.0.6.20
 static_ip_to_remove=$template_vm_ip
+
+#remove 10.0.5.55 from ssh as it creates conflicts when cloning from different templates
+ssh-keygen -f '/home/fenkil/.ssh/known_hosts' -R '10.0.5.55'
 
 # Prompt for sudo password once
 read -s -p "Enter sudo password: " sudo_pass

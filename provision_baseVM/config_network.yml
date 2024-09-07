@@ -9,7 +9,7 @@
       wait_for:
         host: "{{ ansible_host }}"
         port: 22
-        timeout: 500
+        timeout: 300
 
     - name: Create netplan configuration directory if it does not exist
       become: yes
@@ -58,6 +58,12 @@
   tasks:
     - name: Remove the IP address
       ansible.builtin.command: "ip addr del {{ static_ip_to_remove }}/16 dev {{ network_interface }}"
+
+    - name: Remove 50-cloud-init.yaml netplan configurations
+      become: yes
+      file:
+        path: /etc/netplan/50-cloud-init.yaml
+        state: absent
 
     - name: Reboot the system
       ansible.builtin.reboot:

@@ -47,3 +47,5 @@
       service:
         name: autofs
         state: restarted
+
+for some reason truenas is removed from /etc/auto.nfs
