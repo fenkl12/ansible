@@ -19,6 +19,8 @@
           - stow
           - tmux
           - ansible
+          - cron
+          - gcc
         state: present
         update_cache: yes
     

@@ -1,12 +1,12 @@
 all:
   hosts:
     new_static_ip_vm:
-      ansible_host: 10.0.3.33
+      ansible_host: 10.0.5.55
       ansible_user: fenkil
       ansible_become: yes
 
     jellyfin:
-      ansible_host: 10.0.77.10
+      ansible_host: 10.0.10.40
       ansible_user: fenkil
       ansible_become: yes
 

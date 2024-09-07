@@ -1,23 +1,18 @@
 ---
 
-static_ip_to_remove: 10.0.3.33
+static_ip_to_remove: 10.0.5.55
 gateway_ip: 10.0.0.1
 network_interface: "ens18"
 
 
-pihole_password: "fenkil"
-pihole_install_url: https://install.pi-hole.net
-pihole_install_script: /tmp/basic-install.sh
-pihole_static_ip: 10.0.55.230/16
-
-
-docker_central_static_ip: 10.0.88.10/16
-docker_main_static_ip: 10.0.55.10/16
-jellyfin_static_ip: 10.0.77.10/16
-monitoringServer_static_ip: 10.0.88.10/16
+ansibleTower_static_ip: 10.0.10.10/16
+docker_central_static_ip: 10.0.10.20/16
+docker_main_static_ip: 10.0.10.30/16
+jellyfin_static_ip: 10.0.10.40/16
+monitoringServer_static_ip: 10.0.10.50/16
 playVM_static_ip: 10.0.123.10/16
 
-ansibleTower_static_ip: 10.0.10.10/16
+
 
 
 portainer_local_data_path: "/home/{{ ansible_user }}/pcData/portainer"
@@ -26,7 +21,7 @@ portainer_local_data_path: "/home/{{ ansible_user }}/pcData/portainer"
 source_directory: "/home/fenkil/pcData"
 destination_base_directory: "/mnt/tn_proxmoxVMData"
 cron_job_name: "copy_to_nfs_share"
-cron_schedule: "*/1 * * * *"
+cron_schedule: "0 0 * * *"
 
 gitea_version: "1.20.3"  # Update to the latest version if necessary
 gitea_user: "fenkil"

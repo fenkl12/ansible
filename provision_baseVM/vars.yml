@@ -1,19 +1,18 @@
 ---
-proxmox_api_url: "https://10.0.2.100:8006/api2/json"
-proxmox_node: "pve"
-proxmox_vm_id: 1774
-proxmox_template_vm_id: 222
-proxmox_vm_name: "ansible-vm"
-proxmox_storage: "WD-1TB"
+proxmox_api_url: "https://10.0.5.100:8006/api2/json"
+proxmox_node: "proxmox"
+proxmox_vm_id: "{{ proxmox_vm_id }}"
+proxmox_vm_name: "{{ proxmox_vm_name }}"
+proxmox_template_vm_id: "{{ proxmox_template_vm_id }}"
+proxmox_storage: "SAN2TB"
 proxmox_memory: 2048
 proxmox_cores: 2 # cannot be more than 2 as cores will double
-proxmox_storage_size: 20
-proxmox_iso_path: "WD-1TB:iso/ubuntu-22.04.1-live-server-amd64.iso" 
+proxmox_iso_path: "SAN2TB:iso/ubuntu-24.04-live-server-amd64.iso" 
 proxmox_api_token_id: "root@pam!tony"
-proxmox_api_token_secret: "44d4808e-2633-4a11-89b1-26db819ce773"
+proxmox_api_token_secret: "4729a1bc-ac3c-4c55-a02f-6b429bf1dc89"
 
-static_ip: 10.0.3.33/16
-static_ip_to_remove: 10.0.192.210
+static_ip: 10.0.5.55/16
+static_ip_to_remove: "{{ static_ip_to_remove }}"
 gateway_ip: 10.0.0.1
 network_interface: "ens18"
 
@@ -22,7 +21,7 @@ nfs_server_ip: "10.0.203.171"
 auto_master_config: "/mnt /etc/auto.nfs --timeout=60"
 nfs_mounts:
   - { name: "tn_media", path: "/mnt/tank/media" }
-  - { name: "tn_proxmoxVMData", path: "/mnt/tank/backups/proxmox/dataOnly" }
+  - { name: "tn_proxmoxVMData", path: "/mnt/tank/backups/proxmoxMaster/dataOnly" }
 
 source_directory: "/home/fenkil/pcData"
 destination_base_directory: "/mnt/tn_proxmoxVMData"

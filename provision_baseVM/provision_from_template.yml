@@ -39,7 +39,7 @@
 
     - name: Wait for clone operation to complete
       pause:
-        seconds: 40  # Adjust the time as needed
+        seconds: 20  # Adjust the time as needed - much longer if templateVM is turned on
 
     - name: Configure VM cores
       uri:
