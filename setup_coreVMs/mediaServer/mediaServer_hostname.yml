@@ -1,17 +1,17 @@
 ---
 - name: Change Hostname
-  hosts: jellyfin
+  hosts: mediaServer
   become: yes
   tasks:
     - name: Change hostname
       hostname:
-        name: "jellyfin"
+        name: "mediaServer"
       
     - name: Update /etc/hosts with new hostname
       lineinfile:
         path: /etc/hosts
         regexp: '^127\.0\.1\.1\s+'
-        line: "127.0.1.1   jellyfin"
+        line: "127.0.1.1   mediaServer"
         
     - name: Reboot the system
       ansible.builtin.reboot:

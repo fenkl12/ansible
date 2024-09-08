@@ -46,7 +46,7 @@ services:
       - WEBUI_PORT=8085
     volumes:
       - /home/fenkil/pcData/arr-stack/qbittorrent:/config
-      - /home/fenkil/pcData/arr-stack/qbittorrent/downloads:/downloads
+      - /mnt/tn_media/downloads:/downloads
     depends_on:
       - gluetun
     restart: always
@@ -92,19 +92,19 @@ services:
       - /home/fenkil/pcData/arr-stack/prowlarr/data:/config
     restart: unless-stopped
 
-  whisparr:
-    image: hotio/whisparr:nightly
-    container_name: whisparr
-    network_mode: "service:gluetun"
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Toronto
-    volumes:
-      - /home/fenkil/pcData/arr-stack/whisparr/config:/config
-      - /home/fenkil/pcData/arr-stack/whisparr/data:/data
-      - /home/fenkil/pcData/arr-stack/whisparr/downloadclient-downloads:/downloads #optional
-    restart: unless-stopped
+  # whisparr:
+  #   image: hotio/whisparr:nightly
+  #   container_name: whisparr
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=America/Toronto
+  #   volumes:
+  #     - /home/fenkil/pcData/arr-stack/whisparr/config:/config
+  #     - /home/fenkil/pcData/arr-stack/whisparr/data:/data
+  #     - /home/fenkil/pcData/arr-stack/whisparr/downloadclient-downloads:/downloads #optional
+  #   restart: unless-stopped
 
   radarr:
     image: hotio/radarr:nightly

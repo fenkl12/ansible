@@ -7,7 +7,7 @@
 - Hypervisor:
     - Promox:
         icon: proxmox.png
-        href: https://10.0.2.100:8006
+        href: https://10.0.5.100:8006
         description: Proxmox.
 
 - Storage:
@@ -25,6 +25,20 @@
 - Media:
     - Jellyfin:
         icon: jellyfin.png
+        href: http://10.0.10.40:8096
+        description: Media Jellyfin.
+        widget:
+          type: jellyfin
+          url: http://10.0.10.40:8096
+          key: fb8b51f6b2c74b369f1f32135fe0e129
+          enableBlocks: true # optional, defaults to false
+          enableNowPlaying: true # optional, defaults to true
+          enableUser: true # optional, defaults to false
+          showEpisodeNumber: true # optional, defaults to false
+          expandOneStreamToTwoRows: false # optional, defaults to true
+
+    - Jellyfin2:
+        icon: jellyfin.png
         href: http://10.0.3.100:8096
         description: Movies & TV Shows Jellyfin.
         widget:
@@ -37,7 +51,7 @@
           showEpisodeNumber: true # optional, defaults to false
           expandOneStreamToTwoRows: false # optional, defaults to true
 
-    - Jellyfin2:
+    - Jellyfin3:
         icon: jellyfin.png
         href: http://10.0.203.171:8096
         description: Audio Jellyfin.
@@ -55,58 +69,73 @@
         href: http://10.0.3.10:32400
         description: Plex.
 
-
-- Containers:
-    - Gluetun:
-        icon: gluetun.png
-        href: http://10.0.55.10:6881
-        description: VPN service container using Gluetun.
-    - qBittorrent:
-        icon: qbittorrent.png
-        href: http://10.0.55.10:8085
-        description: qBittorrent client with web UI.
-    - Jackett:
-        icon: jackett.png
-        href: http://10.0.55.10:9117
-        description: Jackett indexer service.
-    - Sonarr:
-        icon: sonarr.png
-        href: http://10.0.55.10:8989
-        description: Sonarr TV show manager.
-    - Radarr:
-        icon: sonarr.png
-        href: http://10.0.55.10:8989
-        description: Radarr Movie show manager.
-    - Prowlarr:
-        icon: prowlarr.png
-        href: http://10.0.55.10:9696
-        description: Prowlarr indexer manager.
-    - Whisparr:
-        icon: whisparr.png
-        href: http://10.0.55.10:8989
-        description: Whisparr manager.
+- Central Containers:
     - Portainer:
         icon: portainer.png
-        href: http://10.0.55.10:9000
+        href: http://10.0.10.20:9000
         description: Portainer.
         widget:
           type: portainer
-          url: http://10.0.55.10:9000
+          url: http://10.0.10.20:9000
+          env: 1
+          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
+
+    - Gitea:
+        icon: gitea.png
+        href: http://10.0.10.20:6881
+        description: VPN service container using Gluetun.
+
+- Main Containers:
+    - Gluetun:
+        icon: gluetun.png
+        href: http://10.0.10.30:6881
+        description: VPN service container using Gluetun.
+    - qBittorrent:
+        icon: qbittorrent.png
+        href: http://10.0.10.30:8085
+        description: qBittorrent client with web UI.
+    - Jackett:
+        icon: jackett.png
+        href: http://10.0.10.30:9117
+        description: Jackett indexer service.
+    - Sonarr:
+        icon: sonarr.png
+        href: http://10.0.10.30:8989
+        description: Sonarr TV show manager.
+    - Radarr:
+        icon: sonarr.png
+        href: http://10.0.10.30:8989
+        description: Radarr Movie show manager.
+    - Prowlarr:
+        icon: prowlarr.png
+        href: http://10.0.10.30:9696
+        description: Prowlarr indexer manager.
+    # - Whisparr:
+    #     icon: whisparr.png
+    #     href: http://10.0.10.30:8989
+    #     description: Whisparr manager.
+    - Portainer:
+        icon: portainer.png
+        href: http://10.0.10.30:9000
+        description: Portainer.
+        widget:
+          type: portainer
+          url: http://10.0.10.30:9000
           env: 1
           key: ptr_accesskeyaccesskeyaccesskeyaccesskey
 
     - FreshRSS:
         icon: freshrss.png
-        href: http://10.0.55.10:32768
+        href: http://10.0.10.30:32768
         description: RSS Feed.
         widget:
           type: freshrss
-          url: http://10.0.55.10:32768
+          url: http://10.0.10.30:32768
           username: username
           password: password
     - FocalBoard:
         icon: focalboard.png
-        href: http://10.0.55.10:7000
+        href: http://10.0.10.30:7000
         description: kanban.
 
 # - Hypervisor:

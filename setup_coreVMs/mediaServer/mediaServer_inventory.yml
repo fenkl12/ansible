@@ -5,7 +5,7 @@ all:
       ansible_user: fenkil
       ansible_become: yes
 
-    jellyfin:
+    mediaServer:
       ansible_host: 10.0.10.40
       ansible_user: fenkil
       ansible_become: yes

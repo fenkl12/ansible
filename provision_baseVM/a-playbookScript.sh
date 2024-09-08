@@ -1,14 +1,18 @@
 #!/bin/bash
 
 # Variables
-proxmox_vm_id=130
-proxmox_vm_name=dockerMain
-proxmox_template_vm_id=502
-template_vm_ip=10.0.6.20
+proxmox_vm_id=150
+proxmox_vm_name=monitoringServer
+proxmox_template_vm_id=501
+template_vm_ip=10.0.6.10
 static_ip_to_remove=$template_vm_ip
 
 #remove 10.0.5.55 from ssh as it creates conflicts when cloning from different templates
 ssh-keygen -f '/home/fenkil/.ssh/known_hosts' -R '10.0.5.55'
+
+echo "####################################"
+echo "when trying to start a new template if "10.0.5.55 unreachable error" - ssh direclty once to tempalte to establish connection"
+echo "####################################"
 
 # Prompt for sudo password once
 read -s -p "Enter sudo password: " sudo_pass
@@ -24,22 +28,24 @@ sleep 10
 # Configure network
 echo "Running playbook: config_network.yml to remove static IP: $static_ip_to_remove"
 ansible-playbook -i inventory.yml config_network.yml --extra-vars "template_vm_ip=$template_vm_ip static_ip_to_remove=$static_ip_to_remove ansible_become_pass=$sudo_pass"
-sleep 5
+sleep 10
 
 # Install essential packages
 echo "Running playbook: inst_essential_packages.yml"
 ansible-playbook -i inventory.yml inst_essential_packages.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
 sleep 3
 
-# Configure TrueNAS
-echo "Running playbook: config_truenas.yml"
-ansible-playbook -i inventory.yml config_truenas.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
-sleep 3
-
 # Round 1 - Clone and pull dotfiles
 echo "Running playbook: dotfiles_clone_gitpull.yml"
 ansible-playbook -i inventory.yml dotfiles_clone_gitpull.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
+sleep 3
 
 # Round 2 - Clone and pull dotfiles
 echo "Running playbook: dotfiles_clone_gitpull.yml"
 ansible-playbook -i inventory.yml dotfiles_clone_gitpull.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
+sleep 3
+
+# Configure TrueNAS
+echo "Running playbook: config_truenas.yml"
+ansible-playbook -i inventory.yml config_truenas.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
+sleep 3

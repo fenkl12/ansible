@@ -10,4 +10,3 @@ all:
       ansible_user: fenkil
       ansible_become: yes
 
-sudo apt-get install unattended-upgrades -y

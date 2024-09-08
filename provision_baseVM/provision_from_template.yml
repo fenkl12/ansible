@@ -39,7 +39,7 @@
 
     - name: Wait for clone operation to complete
       pause:
-        seconds: 10  # Adjust the time as needed - much longer if templateVM is turned on
+        seconds: 45  # Adjust the time as needed - much longer if templateVM is turned on
 
     - name: Configure VM cores
       uri:
@@ -69,7 +69,7 @@
 
     - name: Wait for configuration of Cores and Memory operation to complete
       pause:
-        seconds: 5  # Adjust the time as needed
+        seconds: 10  # Adjust the time as needed
 
     - name: Debug clone response
       debug:

@@ -1,6 +1,6 @@
 ---
 - name: Install Jellyfin, Audiobookshelf, and Symlink Music Folder
-  hosts: jellyfin
+  hosts: mediaServer
   become: yes
 
   vars:
