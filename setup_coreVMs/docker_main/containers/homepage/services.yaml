@@ -4,13 +4,12 @@
 # icons found here https://github.com/walkxcode/dashboard-icons
 
 
-- Hypervisor:
+- Main:
     - Promox:
         icon: proxmox.png
         href: https://10.0.5.100:8006
         description: Proxmox.
 
-- Storage:
     - TrueNAS:
         icon: truenas.png
         href: https://10.0.203.171
@@ -22,6 +21,18 @@
           password: # not required if using api key
           enablePools: true # optional, defaults to false
           nasType: scale # defaults to scale, must be set to 'core' if using enablePools with TrueNAS Core
+    
+    - UptimeKuma:
+        icon: uptime-kuma.svg
+        href: http://10.0.10.50:3001
+        description: UptimeKuma.
+        widget:
+            type: uptimekuma
+            key: uk1_3FoU4LhfAm7BNp6AvgG97UK30Jb9_LSIi4iNUMrG
+            url: http://10.0.10.50:3001
+            slug: statuspageslug
+            fields: ["up", "down", "uptime", "incident"]
+
 - Media:
     - Jellyfin:
         icon: jellyfin.png
@@ -82,8 +93,8 @@
 
     - Gitea:
         icon: gitea.png
-        href: http://10.0.10.20:6881
-        description: VPN service container using Gluetun.
+        href: http://10.0.10.20:7000
+        description: Local Git Server.
 
 - Main Containers:
     - Gluetun:
@@ -103,8 +114,8 @@
         href: http://10.0.10.30:8989
         description: Sonarr TV show manager.
     - Radarr:
-        icon: sonarr.png
-        href: http://10.0.10.30:8989
+        icon: radarr.png
+        href: http://10.0.10.30:7878
         description: Radarr Movie show manager.
     - Prowlarr:
         icon: prowlarr.png

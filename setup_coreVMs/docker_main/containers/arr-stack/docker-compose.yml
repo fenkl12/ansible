@@ -76,8 +76,7 @@ services:
       - TZ=America/Toronto
     volumes:
       - /home/fenkil/pcData/arr-stack/sonarr/data:/config
-      - /home/fenkil/pcData/arr-stack/sonarr/tvseries:/tv #optional
-      - /home/fenkil/pcData/arr-stack/sonarr/downloadclient-downloads:/downloads #optional
+      - /mnt/tn_media/TVShows:/tv #optional
     restart: unless-stopped
 
   prowlarr:
@@ -117,6 +116,9 @@ services:
     volumes:
       - /home/fenkil/pcData/arr-stack/radarr/config:/config
       - /home/fenkil/pcData/arr-stack/radarr/data:/data
-      - /home/fenkil/pcData/arr-stack/radarr/movies:/movies #optional
-      - /home/fenkil/pcData/arr-stack/radarr/downloadclient-downloads:/downloads #optional
+      - /mnt/tn_media/Movies:/movies #optional
     restart: unless-stopped
+
+
+
+    ## as all the services are in the same gluetun network - to connect to qbittorrent, leave localhost and only change the port

@@ -11,7 +11,7 @@ echo "Starting the script..."
 ansible-playbook -i monitorSer_inventory.yml monitorSer_config_network.yml --extra-vars "ansible_become_pass=$sudo_pass"
 sleep 5
 
-ansible-playbook -i monitorSer_inventory.yml monitorSer_healthChecksIO.yml --extra-vars "ansible_become_pass=$sudo_pass"
+ansible-playbook -i monitorSer_inventory.yml monitorSer_config_healthChecksIO.yml --extra-vars "ansible_become_pass=$sudo_pass"
 sleep 5
 
 ansible-playbook -i monitorSer_inventory.yml monitorSer_uptimeKumaInstall.yml --extra-vars "ansible_become_pass=$sudo_pass"
