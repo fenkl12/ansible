@@ -1,6 +1,3 @@
-- check backups jobs on VMs
-- connect ansible server to gitea in dockerMain
-  - clone repo
 - disable old docker apps one at a time 
 - configure uptimekuma
 - docker apps to add
