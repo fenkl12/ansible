@@ -1,0 +1,47 @@
+---
+- name: Deploy Docker containers on target hosts
+  hosts: perServer
+  become: yes
+  vars:
+    docker_compose_version: "3"
+
+  tasks:
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+      when: ansible_os_family == 'Ubuntu'
+
+    - name: Create directory structure on target hosts
+      file:
+        path: /home/fenkil/pcData/{{ item.path | dirname | basename }}
+        state: directory
+      with_items: "{{ all_files.files }}"
+
+    - name: Copy all files to target hosts
+      copy:
+        src: "{{ item.path }}"
+        dest: /home/fenkil/pcData/{{ item.path | dirname | basename }}/{{ item.path | basename }}
+      with_items: "{{ all_files.files }}"
+
+    - name: Start Docker Compose projects on target hosts
+      command: docker-compose up -d
+      args:
+        chdir: /home/fenkil/pcData/{{ item.path | dirname | basename }}
+      with_items: "{{ compose_files.files }}"
+
+  pre_tasks:
+    - name: Find all files locally
+      find:
+        paths: ./containers
+        recurse: yes
+      register: all_files
+      delegate_to: localhost
+
+    - name: Find Docker Compose files locally
+      find:
+        paths: ./containers
+        patterns: 'docker-compose.yml'
+        recurse: yes
+      register: compose_files
+      delegate_to: localhost

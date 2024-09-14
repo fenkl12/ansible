@@ -1,0 +1,12 @@
+all:
+  hosts:
+    new_static_ip_vm:
+      ansible_host: 10.0.5.55
+      ansible_user: fenkil
+      ansible_become: yes
+
+    perServer:
+      ansible_host: 10.0.10.60
+      ansible_user: fenkil
+      ansible_become: yes
+

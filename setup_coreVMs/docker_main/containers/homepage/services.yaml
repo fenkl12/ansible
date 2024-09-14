@@ -23,7 +23,7 @@
           nasType: scale # defaults to scale, must be set to 'core' if using enablePools with TrueNAS Core
     
     - UptimeKuma:
-        icon: uptime-kuma.svg
+        icon: uptime-kuma.png
         href: http://10.0.10.50:3001
         description: UptimeKuma.
         widget:
@@ -34,7 +34,7 @@
             fields: ["up", "down", "uptime", "incident"]
 
 - Media:
-    - Jellyfin:
+    - Jellyfin-VM:
         icon: jellyfin.png
         href: http://10.0.10.40:8096
         description: Media Jellyfin.
@@ -62,7 +62,7 @@
           showEpisodeNumber: true # optional, defaults to false
           expandOneStreamToTwoRows: false # optional, defaults to true
 
-    - Jellyfin3:
+    - Jellyfin-TN:
         icon: jellyfin.png
         href: http://10.0.203.171:8096
         description: Audio Jellyfin.
@@ -97,6 +97,28 @@
         description: Local Git Server.
 
 - Main Containers:
+    - Portainer:
+        icon: portainer.png
+        href: http://10.0.10.30:9000
+        description: Portainer.
+        widget:
+          type: portainer
+          url: http://10.0.10.30:9000
+          env: 1
+          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
+    - FocalBoard:
+        icon: focalboard.png
+        href: http://10.0.10.30:7000
+        description: Focalboard.
+    - FreshRSS:
+        icon: freshrss.png
+        href: http://10.0.10.30:32768
+        description: RSS Feed.
+        widget:
+          type: freshrss
+          url: http://10.0.10.30:32768
+          username: username
+          password: password
     - Gluetun:
         icon: gluetun.png
         href: http://10.0.10.30:6881
@@ -125,30 +147,22 @@
     #     icon: whisparr.png
     #     href: http://10.0.10.30:8989
     #     description: Whisparr manager.
-    - Portainer:
-        icon: portainer.png
-        href: http://10.0.10.30:9000
-        description: Portainer.
-        widget:
-          type: portainer
-          url: http://10.0.10.30:9000
-          env: 1
-          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
-
-    - FreshRSS:
-        icon: freshrss.png
-        href: http://10.0.10.30:32768
-        description: RSS Feed.
-        widget:
-          type: freshrss
-          url: http://10.0.10.30:32768
-          username: username
-          password: password
-    - FocalBoard:
-        icon: focalboard.png
-        href: http://10.0.10.30:7000
-        description: kanban.
-
+    - Personal-Nextcloud:
+        icon: nextcloud.png
+        href: http://10.0.10.30:8080
+        description: Personal.
+    - Work-Nextcloud:
+        icon: nextcloud-white.png
+        href: http://10.0.10.30:4000
+        description: Work.
+    - ChangeDetection:
+        icon: changedetection-io.png
+        href: http://10.0.10.30:5000
+        description: ChangeDetection.
+    - Wekan:
+        icon: wekan.png
+        href: http://10.0.10.30:4040
+        description: Wekan.
 # - Hypervisor:
 #     - Proxmox:
 #         icon: proxmox.svg

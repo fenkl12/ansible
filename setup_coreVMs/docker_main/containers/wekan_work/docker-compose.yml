@@ -1,0 +1,35 @@
+version: '2'
+
+volumes:
+  wekandb:
+  wekan-app:
+
+services:
+  db:
+    image: mongo:4.4
+    container_name: wekan-db
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - /home/fenkil/pcData/wekan_work/db:/data/db
+
+  app:
+    image: wekanteam/wekan:latest
+    container_name: wekan-app
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+      - MONGO_URL=mongodb://db:27017/wekan
+      - ROOT_URL=http://localhost:4040
+      - PORT=8080
+    ports:
+      - 4040:8080
+    links:
+      - db
+    volumes:
+      - /home/fenkil/pcData/wekan_work/wekan:/app

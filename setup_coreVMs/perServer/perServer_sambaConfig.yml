@@ -1,0 +1,36 @@
+---
+- name: Mount Samba share on target host
+  hosts: perServer
+  become: yes
+
+  tasks:
+
+    - name: Install cifs-utils if not present (required for mounting CIFS shares)
+      package:
+        name: cifs-utils
+        state: present
+
+    - name: Create mount point directory
+      file:
+        path: /gkp
+        state: directory
+        mode: '0755'
+      become: yes
+
+    - name: Mount Samba share
+      mount:
+        path: /gkp
+        src: "//10.0.203.171/gkp"
+        fstype: cifs
+        opts: "username=fenkil,password=bolice90,uid=1000,gid=1000,rw"
+        state: mounted
+      become: yes
+      
+    - name: Ensure the Samba share is added to /etc/fstab
+      mount:
+        path: /gkp
+        src: "//10.0.203.171/gkp"
+        fstype: cifs
+        opts: "username=admin,password=admin,uid=1000,gid=1000,rw"
+        state: present
+

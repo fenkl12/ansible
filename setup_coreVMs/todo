@@ -1,20 +1,12 @@
 - disable old docker apps one at a time
-- configure uptimekuma
 - docker apps to add
   - openvpn
-  - wekandb
-- configure homepage
-  - nextcloud personal
-  - nextcloud work
-  - changedetection
-  - wekandb
-  - plex
 - configure arr stack to move downloads to correct folder
-- start a jp VM
+- start a per VM
   - docker
     - gitea
     - firefox container
     - arr stack
-  - yt-dlp webapp
+    - yt-dlp webapp
      
 
