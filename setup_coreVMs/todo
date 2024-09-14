@@ -1,4 +1,4 @@
-- disable old docker apps one at a time  
+- disable old docker apps one at a time 
 - configure uptimekuma
 - docker apps to add
   - openvpn
