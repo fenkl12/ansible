@@ -2,11 +2,6 @@
 - docker apps to add
   - openvpn
 - configure arr stack to move downloads to correct folder
-- start a per VM
-  - docker
-    - gitea
-    - firefox container
-    - arr stack
-    - yt-dlp webapp
+
      
 

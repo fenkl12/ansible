@@ -16,9 +16,12 @@ services:
       - 9117:9117 # Jackett
       - 9696:9696 # Prowlarr
       - 6969:6969 # Whisparr
+      - 3033:3033 # yt-dlp
+      - 9900:3000 # firefox
+      - 9901:3001 # firefox
 
     volumes:
-      - /home/fenkil/pcData/arr-stack:/gluetun
+      - /home/fenkil/pcData/vpnstack/gluten:/gluetun
     environment:
       - VPN_SERVICE_PROVIDER=nordvpn
       - VPN_TYPE=openvpn
@@ -44,7 +47,7 @@ services:
       - TZ=America/Toronto
       - WEBUI_PORT=8085
     volumes:
-      - /home/fenkil/pcData/arr-stack/qbittorrent:/config
+      - /home/fenkil/pcData/vpnstack/qbittorrent:/config
       - /gkp/downloads:/downloads
     depends_on:
       - gluetun
@@ -61,8 +64,8 @@ services:
       - AUTO_UPDATE=true #optional
       - RUN_OPTS= #optional
     volumes:
-      - /home/fenkil/pcData/arr-stack/jackett/data:/config
-      - /home/fenkil/pcData/arr-stack/jackett/downloads:/downloads
+      - /home/fenkil/pcData/vpnstack/jackett/data:/config
+      - /home/fenkil/pcData/vpnstack/jackett/downloads:/downloads
     restart: unless-stopped
 
   prowlarr:
@@ -74,7 +77,7 @@ services:
       - PGID=1000
       - TZ=America/Toronto
     volumes:
-      - /home/fenkil/pcData/arr-stack/prowlarr/data:/config
+      - /home/fenkil/pcData/vpnstack/prowlarr/data:/config
     restart: unless-stopped
 
   whisparr:
@@ -86,9 +89,34 @@ services:
       - PGID=1000
       - TZ=America/Toronto
     volumes:
-      - /home/fenkil/pcData/arr-stack/whisparr/config:/config
-      - /home/fenkil/pcData/arr-stack/whisparr/data:/data
-      - /home/fenkil/pcData/arr-stack/whisparr/downloadclient-downloads:/downloads #optional
+      - /home/fenkil/pcData/vpnstack/whisparr/config:/config
+      - /home/fenkil/pcData/vpnstack/whisparr/data:/data
+      - /home/fenkil/pcData/vpnstack/whisparr/downloadclient-downloads:/downloads #optional
     restart: unless-stopped
-    
+
+
+  yt-dlp-webui:
+    image: marcobaobao/yt-dlp-webui
+    container_name: yt-dlp-webui
+    network_mode: "service:gluetun"
+    volumes:
+      - /gkp/downloads:/downloads # replace <your dir> with a directory on your host system
+    restart: unless-stopped
+
+  firefox:
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: firefox
+    security_opt:
+      - seccomp:unconfined #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - FIREFOX_CLI=https://www.linuxserver.io/ #optional
+    network_mode: "service:gluetun"
+    volumes:
+      - /home/fenkil/pcData/vpnstack/firefox/config:/config
+    shm_size: "1gb"
+    restart: unless-stopped
+
     ## as all the services are in the same gluetun network - to connect to qbittorrent, leave localhost and only change the port
