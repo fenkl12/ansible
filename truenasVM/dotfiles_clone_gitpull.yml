@@ -1,0 +1,63 @@
+---
+- name: Clone Git Repository to Home Directory
+  hosts: new_static_ip_vm
+  become: yes
+
+  tasks:
+    - name: Ensure Git is installed
+      apt:
+        name: git
+        state: present
+      when: ansible_os_family == "Ubuntu"
+
+    - name: Clone the repository to the home directory
+      git:
+        repo: 'http://10.0.10.20:7000/fenkil/dotfiles.git'
+        dest: "/home/fenkil/dotfiles"
+        version: main
+        force: yes
+
+    - name: Find all playbooks in dotfiles/ansible_localPc
+      find:
+        paths: "/home/fenkil/dotfiles/ansible_localPc"
+        patterns: "*.yml"
+      register: playbooks
+
+    - name: Run the playbooks on the VM
+      ansible.builtin.command: ansible-playbook {{ item.path }}
+      with_items: "{{ playbooks.files }}"
+      args:
+        chdir: "/home/fenkil/dotfiles/ansible_localPc"
+      when: playbooks.matched > 0
+      ignore_errors: yes
+
+    - name: Change shell to Zsh for user fenkil
+      command: chsh -s /usr/bin/zsh fenkil
+      register: chsh_result
+
+
+    - name: Add safe.directory configuration for the cloned repository
+      command: git config --global --add safe.directory /home/fenkil/dotfiles
+      become_user: fenkil
+
+    - name: Change ownership of the dotfiles directory to fenkil
+      file:
+        path: "/home/fenkil/dotfiles"
+        state: directory
+        recurse: yes
+        owner: fenkil
+        group: fenkil
+
+    - name: Add a cron job to pull the latest changes from the repository every Monday
+      cron:
+        name: "Git Pull for dotfiles"
+        user: fenkil
+        minute: 0
+        hour: 0
+        day: "*"
+        month: "*"
+        weekday: 1
+        job: "cd /home/fenkil/dotfiles && /usr/bin/git pull"
+
+
+#playbook has to run twice for zsh to work not sure why 

@@ -2,6 +2,9 @@
 - docker apps to add
   - openvpn
 - configure arr stack to move downloads to correct folder
+- truenas VM
+  - static ip
+  - openVPN
 
      
 

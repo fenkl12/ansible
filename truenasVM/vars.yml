@@ -1,0 +1,14 @@
+---
+tnVM_static_ip: 10.0.203.10/16
+tnVM_static_ip_to_remove: "10.0.247.132"
+gateway_ip: 10.0.0.1
+tnVM_network_interface: "ens3"
+
+
+nfs_server_ip: "10.0.203.171"
+auto_master_config: "/mnt /etc/auto.nfs --timeout=60"
+nfs_mounts:
+  - { name: "tn_media", path: "/mnt/tank/media" }
+
+source_directory: "/home/fenkil/pcData"
+destination_base_directory: "/mnt/tn_proxmoxVMData"

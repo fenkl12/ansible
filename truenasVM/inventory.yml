@@ -1,0 +1,9 @@
+all:
+  hosts:
+    truenasVM:
+      ansible_host: 10.0.247.132
+
+    new_static_ip_vm:
+      ansible_host: 10.0.203.10
+      ansible_user: fenkil
+      ansible_become: yes

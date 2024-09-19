@@ -1,0 +1,74 @@
+---
+- name: Configure static IP address
+  hosts: truenasVM
+  gather_facts: no
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Wait for VM to be accessible
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        timeout: 300
+
+    - name: Create netplan configuration directory if it does not exist
+      become: yes
+      file:
+        path: /etc/netplan
+        state: directory
+        mode: '0755'
+
+    - name: Remove old netplan configurations
+      become: yes
+      file:
+        path: /etc/netplan/*.yaml
+        state: absent
+
+    - name: Remove old network interfaces configurations
+      become: yes
+      raw: |
+        sudo rm /etc/network/interfaces.d/* || true
+        sudo rm /etc/network/interfaces || true
+
+    - name: Configure static IP address
+      become: yes
+      template:
+        src: static_ip.j2
+        dest: /etc/netplan/01-netcfg.yaml
+        mode: '0600'
+
+    - name: Apply netplan configuration
+      become: yes
+      command: netplan apply
+      notify:
+        - Restart networking
+
+  handlers:
+    - name: Restart networking
+      become: yes
+      service:
+        name: systemd-networkd
+        state: restarted
+
+- name: Remove base static IP address
+  hosts: new_static_ip_vm
+  gather_facts: no
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Remove the IP address
+      ansible.builtin.command: "ip addr del {{ tnVM_static_ip_to_remove }}/16 dev {{ tnVM_network_interface }}"
+
+    - name: Remove 50-cloud-init.yaml netplan configurations
+      become: yes
+      file:
+        path: /etc/netplan/50-cloud-init.yaml
+        state: absent
+
+    - name: Reboot the system
+      ansible.builtin.reboot:
+        reboot_timeout: 20  # Time in seconds to wait for the system to reboot
+        msg: "Reboot initiated by Ansible playbook"
+
+## use ssh to confirm that ip address has been changed
+## gui can be misleading
