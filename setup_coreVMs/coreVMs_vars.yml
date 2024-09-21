@@ -11,6 +11,7 @@ docker_main_static_ip: 10.0.10.30/16
 mediaServer_static_ip: 10.0.10.40/16
 monitoringServer_static_ip: 10.0.10.50/16
 perServer_static_ip: 10.0.10.60/16
+devServer_static_ip: 10.0.10.70/16
 playVM_static_ip: 10.0.123.10/16
 
 

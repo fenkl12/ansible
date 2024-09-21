@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Variables
-proxmox_vm_id=160
-proxmox_vm_name=perServer
-proxmox_template_vm_id=503
-template_vm_ip=10.0.6.30
+proxmox_vm_id=170
+proxmox_vm_name=devServer
+proxmox_template_vm_id=502
+template_vm_ip=10.0.6.20
 static_ip_to_remove=$template_vm_ip
 
 #remove 10.0.5.55 from ssh as it creates conflicts when cloning from different templates

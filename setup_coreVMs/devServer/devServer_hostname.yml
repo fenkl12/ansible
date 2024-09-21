@@ -1,0 +1,20 @@
+---
+- name: Change Hostname
+  hosts: devServer
+  become: yes
+  tasks:
+    - name: Change hostname
+      hostname:
+        name: "devServer"
+      
+    - name: Update /etc/hosts with new hostname
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+'
+        line: "127.0.1.1   devServer"
+        
+    - name: Reboot the system
+      ansible.builtin.reboot:
+        reboot_timeout: 20  # Time in seconds to wait for the system to reboot
+        msg: "Reboot initiated by Ansible playbook"
+      ignore_errors: yes

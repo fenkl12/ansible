@@ -1,7 +1,6 @@
 - disable old docker apps one at a time
 - docker apps to add
   - openvpn
-- configure arr stack to move downloads to correct folder
 - truenas VM
   - openVPN
 
