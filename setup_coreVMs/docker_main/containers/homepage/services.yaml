@@ -163,6 +163,40 @@
         icon: wekan.png
         href: http://10.0.10.30:4040
         description: Wekan.
+    - Portainer:
+        icon: portainer.png
+        href: http://10.0.10.60:9000
+        description: Portainer-60.
+        widget:
+          type: portainer
+          url: http://10.0.10.60:9000
+          env: 1
+          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
+
+- Syncthing:
+    - Syncthing-TN:
+        icon: syncthing.png
+        href: http://10.0.203.171:20910/#
+    - Syncthing-DT:
+        icon: syncthing.png
+        href: http://localhost:8384
+    - Syncthing-devServer:
+        icon: syncthing.png
+        href: http://10.0.10.70:41847
+- LLM:
+    - Portainer:
+        icon: portainer.png
+        href: http://10.0.203.20:9000
+        description: Portainer.
+        widget:
+          type: portainer
+          url: http://10.0.203.20:9000
+          env: 1
+          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
+    - Whisper:
+        icon: ward.png
+        href: http://10.0.203.20:7070
+
 # - Hypervisor:
 #     - Proxmox:
 #         icon: proxmox.svg
