@@ -196,7 +196,14 @@
     - Whisper:
         icon: ward.png
         href: http://10.0.203.20:7070
-
+        description: Transcriber.
+    - VoiceNotes:
+        icon: vultr.png
+        href: http://10.0.203.20:7080
+        description: Transcriber.
+    - Syncthing-LLM:
+        icon: syncthing.png
+        href: http://10.0.203.20:8384/#
 # - Hypervisor:
 #     - Proxmox:
 #         icon: proxmox.svg

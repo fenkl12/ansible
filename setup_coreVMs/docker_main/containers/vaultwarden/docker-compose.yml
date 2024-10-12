@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    environment:
+      # You can adjust these environment variables as needed
+      WEBSOCKET_ENABLED: 'true'  # Enable websockets for live sync (optional)
+      ADMIN_TOKEN: '553e78er3faca4aefb078ec72063d5229332f'  # Set your admin token for accessing admin interface
+    volumes:
+      - /home/fenkil/pcData/vaultwarden/vw-data:/data  # Persist the data
+    ports:
+      - "8077:80"  # Expose Vaultwarden on port 8080, you can change this
+    networks:
+      - vaultwarden_net
+
+networks:
+  vaultwarden_net:
+    driver: bridge

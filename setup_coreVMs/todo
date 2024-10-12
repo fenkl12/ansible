@@ -1,8 +1,5 @@
 - disable old docker apps one at a time
-- docker apps to add
-  - openvpn
-- truenas VM
-  - openVPN
+
 
 
      
