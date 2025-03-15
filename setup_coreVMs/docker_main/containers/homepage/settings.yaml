@@ -15,8 +15,12 @@ layout:
     style: row
     columns: 7
   LLM:
-    style: row
+    style:  row
     columns: 7
+  TN-Apps:
+    style: row
+    columns: 2
+    
 
 providers:
   openweathermap: openweathermapapikey

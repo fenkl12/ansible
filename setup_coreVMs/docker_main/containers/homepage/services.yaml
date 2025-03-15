@@ -204,6 +204,12 @@
     - Syncthing-LLM:
         icon: syncthing.png
         href: http://10.0.203.20:8384/#
+- TN-Apps:
+    - Obsidian:
+        icon: obsidian.png
+        href: http://10.0.203.10:7080
+        description: Obsidian.
+        
 # - Hypervisor:
 #     - Proxmox:
 #         icon: proxmox.svg
