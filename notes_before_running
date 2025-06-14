@@ -1,0 +1,2 @@
+make sure to add sshkey ton new vm 
+e.g. ssh-copy-id fenkil@10.0.181.35

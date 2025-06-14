@@ -1,12 +1,12 @@
 all:
   hosts:
     new_static_ip_vm:
-      ansible_host: 10.0.3.33
+      ansible_host: 10.0.5.55
       ansible_user: fenkil
       ansible_become: yes
 
     playVM:
-      ansible_host: 10.0.123.10
+      ansible_host: 10.0.30.20
       ansible_user: fenkil
       ansible_become: yes
 

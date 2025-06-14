@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Variables
-proxmox_vm_id=170
-proxmox_vm_name=devServer
-proxmox_template_vm_id=502
-template_vm_ip=10.0.6.20
+proxmox_vm_id=203
+proxmox_vm_name=perSamba
+proxmox_template_vm_id=503
+template_vm_ip=10.0.6.30
 static_ip_to_remove=$template_vm_ip
 
 #remove 10.0.5.55 from ssh as it creates conflicts when cloning from different templates
@@ -23,14 +23,14 @@ echo "Starting the script..."
 # Provision VM from template
 echo "Running playbook: provision_from_template.yml with VM ID: $proxmox_vm_id, VM Name: $proxmox_vm_name, Template VM ID: $proxmox_template_vm_id"
 ansible-playbook -i inventory.yml provision_from_template.yml --extra-vars "template_vm_ip=$template_vm_ip proxmox_vm_id=$proxmox_vm_id proxmox_vm_name=$proxmox_vm_name proxmox_template_vm_id=$proxmox_template_vm_id"
-sleep 10
+sleep 40
 
 # Configure network
 echo "Running playbook: config_network.yml to remove static IP: $static_ip_to_remove"
 ansible-playbook -i inventory.yml config_network.yml --extra-vars "template_vm_ip=$template_vm_ip static_ip_to_remove=$static_ip_to_remove ansible_become_pass=$sudo_pass"
 sleep 10
 
-# Install essential packages
+Install essential packages
 echo "Running playbook: inst_essential_packages.yml"
 ansible-playbook -i inventory.yml inst_essential_packages.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
 sleep 3
@@ -46,6 +46,6 @@ ansible-playbook -i inventory.yml dotfiles_clone_gitpull.yml --extra-vars "templ
 sleep 3
 
 # Configure TrueNAS
-echo "Running playbook: config_truenas.yml"
-ansible-playbook -i inventory.yml config_truenas.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
-sleep 3
+# echo "Running playbook: config_truenas.yml"
+# ansible-playbook -i inventory.yml config_truenas.yml --extra-vars "template_vm_ip=$template_vm_ip ansible_become_pass=$sudo_pass"
+# sleep 3
