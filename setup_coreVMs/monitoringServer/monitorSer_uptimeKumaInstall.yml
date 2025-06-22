@@ -4,112 +4,125 @@
   become: yes
   tasks:
 
+    - name: Stop Uptime Kuma service if running
+      systemd:
+        name: uptime-kuma
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Remove Uptime Kuma systemd service file
+      file:
+        path: /etc/systemd/system/uptime-kuma.service
+        state: absent
+
+    - name: Reload systemd after service removal
+      systemd:
+        daemon_reload: yes
+
+    - name: Remove existing Uptime Kuma installation from /opt
+      file:
+        path: /opt/uptime-kuma
+        state: absent
+
+    - name: Remove existing Uptime Kuma installation from /home/fenkil/pcData
+      file:
+        path: /home/fenkil/pcData/uptime-kuma
+        state: absent
+
+    - name: Remove symbolic link if exists
+      file:
+        path: /var/lib/uptime-kuma
+        state: absent
+
+    - name: Remove any other uptime-kuma related files in home directory
+      file:
+        path: /home/fenkil/pcData/uptimekuma
+        state: absent
+
+    - name: Kill any running Uptime Kuma processes
+      shell: |
+        pkill -f "uptime-kuma" || true
+        pkill -f "npm.*start.*uptime-kuma" || true
+      ignore_errors: yes
+
     - name: Update APT package index
       apt:
         update_cache: yes
 
-    - name: Install dependencies
+    - name: Install Docker dependencies
       apt:
         name:
-          - git
+          - apt-transport-https
+          - ca-certificates
           - curl
-          - build-essential
-
+          - gnupg
+          - lsb-release
         state: present
 
-    - name: Install Node.js (using Nodesource)
-      shell: |
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-        apt-get install -y nodejs
-      args:
-        executable: /bin/bash
-    - name: Clone Uptime Kuma repository
-      git:
-        repo: 'https://github.com/louislam/uptime-kuma.git'
-        dest: /opt/uptime-kuma
-        version: master
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
 
-    - name: Install npm dependencies
-      command: npm install
-      args:
-        chdir: /opt/uptime-kuma
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
 
-    - name: Build Uptime Kuma
-      command: npm run build
-      args:
-        chdir: /opt/uptime-kuma
+    - name: Update APT package index after adding Docker repo
+      apt:
+        update_cache: yes
 
-    - name: Create data directory if it does not exist
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add fenkil user to docker group
+      user:
+        name: fenkil
+        groups: docker
+        append: yes
+    - name: Create Uptime Kuma data directory
       file:
-        path: /opt/uptime-kuma/data
-        state: directory
-
-    - name: Create symbolic link for data directory
-      file:
-        src: /opt/uptime-kuma/data
-        dest: /var/lib/uptime-kuma
-        state: link
-
-    - name: Clone Uptime Kuma repository
-      git:
-        repo: https://github.com/louislam/uptime-kuma.git
-        dest: /opt/uptime-kuma
-        version: master
-
-    - name: Install Uptime Kuma dependencies
-      command: npm install
-      args:
-        chdir: /opt/uptime-kuma
-
-    - name: Ensure original data directory exists
-      file:
-        path: /opt/uptime-kuma/data
+        path: /home/fenkil/pcData/uptimeKumaDockerData
         state: directory
         owner: fenkil
         group: fenkil
         mode: '0755'
 
-    - name: Create symbolic link in home directory pointing to original data directory
-      file:
-        src: /opt/uptime-kuma
-        dest: /home/fenkil/pcData/uptimekuma
-        state: link
-        owner: fenkil
-        group: fenkil
-
-    - name: Start Uptime Kuma
-      command: npm run start
-      args:
-        chdir: /opt/uptime-kuma
-      async: 30
-      poll: 0
-
-    - name: Create systemd service for Uptime Kuma
-      copy:
-        dest: /etc/systemd/system/uptime-kuma.service
-        content: |
-          [Unit]
-          Description=Uptime Kuma
-          After=network.target
-
-          [Service]
-          ExecStart=/usr/bin/npm start --prefix /opt/uptime-kuma
-          WorkingDirectory=/opt/uptime-kuma
-          Restart=always
-          User=root
-
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Reload systemd to recognize Uptime Kuma service
-      systemd:
-        daemon_reload: yes
-
-    - name: Enable and start Uptime Kuma service
-      systemd:
+    - name: Stop existing Uptime Kuma container if running
+      docker_container:
         name: uptime-kuma
-        enabled: yes
+        state: absent
+      ignore_errors: yes
+
+    - name: Pull Uptime Kuma Docker image
+      docker_image:
+        name: louislam/uptime-kuma:1
+        source: pull
+
+    - name: Run Uptime Kuma Docker container
+      docker_container:
+        name: uptime-kuma
+        image: louislam/uptime-kuma:1
         state: started
+        restart_policy: always
+        ports:
+          - "3001:3001"
+        volumes:
+          - "/home/fenkil/pcData/uptimeKumaDockerData:/app/data"
+        user: "{{ ansible_user_uid }}:{{ ansible_user_gid }}"
 
     - name: Wait for Uptime Kuma to start
       wait_for:

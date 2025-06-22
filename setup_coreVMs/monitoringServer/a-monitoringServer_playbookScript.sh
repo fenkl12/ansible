@@ -6,7 +6,7 @@ echo
 
 echo "Starting the script..."
 
-# Provision VM from template
+Provision VM from template
 
 ansible-playbook -i monitorSer_inventory.yml monitorSer_config_network.yml --extra-vars "ansible_become_pass=$sudo_pass"
 sleep 5
