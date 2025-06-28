@@ -20,7 +20,9 @@ layout:
   TN-Apps:
     style: row
     columns: 2
-    
+  Work-docker:
+    style:  row
+    columns: 7   
 
 providers:
   openweathermap: openweathermapapikey

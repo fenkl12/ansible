@@ -5,6 +5,8 @@ services:
     container_name: homepage
     ports:
       - 3000:3000
+    environment:
+      - HOMEPAGE_ALLOWED_HOSTS=10.0.10.30:3000
     volumes:
       - /home/fenkil/pcData/homepage:/app/config  # Mount the configuration file
       - /var/run/docker.sock:/var/run/docker.sock:ro 

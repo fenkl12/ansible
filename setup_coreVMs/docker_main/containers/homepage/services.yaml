@@ -207,9 +207,51 @@
 - TN-Apps:
     - Obsidian:
         icon: obsidian.png
-        href: http://10.0.203.10:7080
+        href: http://10.0.203.30:3000
         description: Obsidian.
-        
+
+- Work-docker:
+    - MarkItDown converter:
+        icon: markdown.png
+        href: http://10.0.234.16:7000
+        description: MarkItDown converter
+
+    - Change control helper:
+        icon: changecontrol.png
+        href: http://10.0.234.16:7001
+        description: Change control helper
+
+    - Root cause analysis:
+        icon: rootcause.png
+        href: http://10.0.234.16:7002
+        description: Root cause analysis
+
+    - Email analysis:
+        icon: email.png
+        href: http://10.0.234.16:7003
+        description: Email analysis
+
+    - SOP reviewer:
+        icon: sop.png
+        href: http://10.0.234.16:7004
+        description: SOP reviewer
+
+    - WorkSimpleRAG:
+        icon: worksimplerag.png
+        href: http://10.0.234.16:7005
+        description: WorkSimpleRAG
+
+    - WorkVault (document management):
+        icon: workvault.png
+        href: http://10.0.234.16:7006
+        description: WorkVault (document management)
+
+    - COA Analyzer (certificate analysis):
+        icon: coa.png
+        href: http://10.0.234.16:7007
+        description: COA Analyzer (certificate analysis)
+
+
 # - Hypervisor:
 #     - Proxmox:
 #         icon: proxmox.svg
@@ -416,3 +458,4 @@
 #         icon: https://shlink.io/images/shlink-logo-blue.svg
 #         href: "{{HOMEPAGE_VAR_SHLINK_URL}}"
 #         description: dashboard
+
