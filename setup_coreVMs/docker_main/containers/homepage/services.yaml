@@ -183,7 +183,8 @@
     - Syncthing-devServer:
         icon: syncthing.png
         href: http://10.0.10.70:41847
-- LLM:
+
+- TN-Llm-Apps-IP20:
     - Portainer:
         icon: portainer.png
         href: http://10.0.203.20:9000
@@ -204,52 +205,74 @@
     - Syncthing-LLM:
         icon: syncthing.png
         href: http://10.0.203.20:8384/#
-- TN-Apps:
+    - OpenWebUI:
+        icon: open-webui-light.png
+        href: http://10.0.203.20:8080
+    - n8n:
+        icon: n8n.png
+        href: http://10.0.203.20:3002
+
+- TN-Docker-Apps-IP30:
+    - Portainer:
+        icon: portainer.png
+        href: http://10.0.203.30:9000
+        description: Portainer.
+        widget:
+          type: portainer
+          url: http://10.0.203.30:9000
+          env: 1
+          key: ptr_accesskeyaccesskeyaccesskeyaccesskey
+
     - Obsidian:
         icon: obsidian.png
         href: http://10.0.203.30:3000
         description: Obsidian.
 
-- Work-docker:
+- Work-PC-Docker:
     - MarkItDown converter:
         icon: markdown.png
         href: http://10.0.234.16:7000
         description: MarkItDown converter
-
-    - Change control helper:
-        icon: changecontrol.png
-        href: http://10.0.234.16:7001
-        description: Change control helper
-
-    - Root cause analysis:
-        icon: rootcause.png
-        href: http://10.0.234.16:7002
-        description: Root cause analysis
-
     - Email analysis:
         icon: email.png
         href: http://10.0.234.16:7003
         description: Email analysis
-
+    - Change control helper:
+        icon: changecontrol.png
+        href: http://10.0.234.16:7001
+        description: Change control helper
+    - Quality Event Helper:
+        icon: QE.png
+        href: http://10.0.234.16:7011
+        description: Quality Event Helper
+    - Root cause analysis:
+        icon: rootcause.png
+        href: http://10.0.234.16:7002
+        description: Root cause analysis
     - SOP reviewer:
         icon: sop.png
         href: http://10.0.234.16:7004
         description: SOP reviewer
-
     - WorkSimpleRAG:
         icon: worksimplerag.png
         href: http://10.0.234.16:7005
         description: WorkSimpleRAG
-
     - WorkVault (document management):
         icon: workvault.png
         href: http://10.0.234.16:7006
         description: WorkVault (document management)
-
     - COA Analyzer (certificate analysis):
         icon: coa.png
         href: http://10.0.234.16:7007
         description: COA Analyzer (certificate analysis)
+    - Simple Invoice Analyzer:
+        icon: invoice.png
+        href: http://10.0.234.16:7009
+        description: Simple Invoice Analyzer
+    - Audit Checkclist:
+        icon: audit.png
+        href: http://10.0.234.16:7010
+        description: Audit Checkclist
 
 
 # - Hypervisor:

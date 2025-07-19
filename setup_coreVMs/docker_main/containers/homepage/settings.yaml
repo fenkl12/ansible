@@ -14,13 +14,13 @@ layout:
   Main Containers:
     style: row
     columns: 7
-  LLM:
+  TN-Llm-Apps-IP20:
     style:  row
     columns: 7
-  TN-Apps:
+  TN-Docker-Apps-IP30:
     style: row
     columns: 2
-  Work-docker:
+  Work-PC-Docker:
     style:  row
     columns: 7   
 
