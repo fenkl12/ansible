@@ -18,7 +18,7 @@ CONTAINER_NAME="$1"
 if [ ! -d "containers/$CONTAINER_NAME" ]; then
     echo "Error: Container directory 'containers/$CONTAINER_NAME' does not exist"
     echo ""
-    echo "Available containers:"
+    echo "Available containers are:"
     ls -1 containers/ 2>/dev/null || echo "No containers directory found"
     exit 1
 fi
