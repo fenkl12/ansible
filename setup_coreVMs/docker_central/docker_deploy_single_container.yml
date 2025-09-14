@@ -1,0 +1,143 @@
+---
+- name: Deploy a single Docker container on target hosts
+  hosts: docker_central
+  become: yes
+  vars:
+    docker_compose_version: "3"
+    # Specify which container to deploy (override with -e container_name=<name>)
+    container_name: "{{ container_name | default('portainer') }}"
+
+  tasks:
+    - name: Validate container name is provided
+      fail:
+        msg: "Container name must be specified. Use -e container_name=<container_name>"
+      when: container_name is not defined or container_name == ""
+
+    - name: Check if container directory exists locally
+      stat:
+        path: "./containers/{{ container_name }}"
+      register: container_dir
+      delegate_to: localhost
+      run_once: true
+
+    - name: Fail if container directory doesn't exist
+      fail:
+        msg: "Container directory './containers/{{ container_name }}' does not exist"
+      when: not container_dir.stat.exists
+      run_once: true
+
+
+    - name: Find all files for the specified container
+      find:
+        paths: "./containers/{{ container_name }}"
+        recurse: yes
+        file_type: any
+      register: container_files
+      delegate_to: localhost
+      run_once: true
+
+    - name: Create container directory on target host
+      file:
+        path: "/home/fenkil/pcData/{{ container_name }}"
+        state: directory
+        owner: fenkil
+        group: fenkil
+        mode: '0755'
+
+    - name: Copy container files to target host
+      copy:
+        src: "{{ item.path }}"
+        dest: "/home/fenkil/pcData/{{ container_name }}/{{ item.path | relpath('./containers/' + container_name) }}"
+        owner: fenkil
+        group: fenkil
+        mode: preserve
+      with_items: "{{ container_files.files }}"
+      when: item.isreg
+
+    - name: Create subdirectories on target host
+      file:
+        path: "/home/fenkil/pcData/{{ container_name }}/{{ item.path | relpath('./containers/' + container_name) }}"
+        state: directory
+        owner: fenkil
+        group: fenkil
+        mode: '0755'
+      with_items: "{{ container_files.files }}"
+      when: item.isdir
+
+    - name: Check if docker-compose.yml exists for the container
+      stat:
+        path: "/home/fenkil/pcData/{{ container_name }}/docker-compose.yml"
+      register: compose_file
+
+    - name: Read docker-compose.yml to find volume mounts
+      slurp:
+        src: "/home/fenkil/pcData/{{ container_name }}/docker-compose.yml"
+      register: compose_content
+      when: compose_file.stat.exists
+
+    - name: Parse docker-compose.yml for volume paths
+      set_fact:
+        compose_data: "{{ compose_content.content | b64decode | from_yaml }}"
+      when: compose_file.stat.exists
+
+    - name: Check if volume directories exist
+      stat:
+        path: "{{ item.split(':')[0] }}"
+      with_items: "{{ compose_data.services[container_name].volumes | default([]) }}"
+      register: volume_dir_stats
+      when: 
+        - compose_file.stat.exists
+        - item.split(':')[0].startswith('/home/fenkil/')
+
+    - name: Create host data directories for volumes (only if they don't exist)
+      file:
+        path: "{{ item.item.split(':')[0] }}"
+        state: directory
+        owner: fenkil
+        group: fenkil
+        mode: '0777'
+      with_items: "{{ volume_dir_stats.results | default([]) }}"
+      when: 
+        - compose_file.stat.exists
+        - item.item is defined
+        - item.item.split(':')[0].startswith('/home/fenkil/')
+        - not item.stat.exists
+      ignore_errors: yes
+
+    - name: Stop existing container if running
+      command: docker-compose down
+      args:
+        chdir: "/home/fenkil/pcData/{{ container_name }}"
+      ignore_errors: yes
+      when: compose_file.stat.exists
+
+    - name: Deploy the container using Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: "/home/fenkil/pcData/{{ container_name }}"
+      when: compose_file.stat.exists
+
+    - name: Wait for container to be ready
+      wait_for:
+        timeout: 30
+      when: compose_file.stat.exists
+
+    - name: Get container status
+      command: docker-compose ps
+      args:
+        chdir: "/home/fenkil/pcData/{{ container_name }}"
+      register: container_status
+      when: compose_file.stat.exists
+
+    - name: Display container status
+      debug:
+        msg: "{{ container_status.stdout }}"
+      when: compose_file.stat.exists
+
+  post_tasks:
+    - name: Display deployment summary
+      debug:
+        msg: |
+          Container '{{ container_name }}' has been deployed successfully!
+          Files copied to: /home/fenkil/pcData/{{ container_name }}
+          Use 'docker-compose logs' in the container directory to view logs.
