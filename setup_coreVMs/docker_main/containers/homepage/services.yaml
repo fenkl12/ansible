@@ -143,10 +143,10 @@
         icon: prowlarr.png
         href: http://10.0.10.30:9696
         description: Prowlarr indexer manager.
-    # - Whisparr:
-    #     icon: whisparr.png
-    #     href: http://10.0.10.30:8989
-    #     description: Whisparr manager.
+    - DumbPad:
+        icon: pad.png
+        href: http://10.0.10.30:3030
+        description: DumbPad.
     - Personal-Nextcloud:
         icon: nextcloud.png
         href: http://10.0.10.30:8080

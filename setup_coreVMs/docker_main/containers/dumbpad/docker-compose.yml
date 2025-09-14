@@ -1,0 +1,9 @@
+services:
+  dumbpad:
+    image: dumbwareio/dumbpad:latest
+    container_name: dumbpad
+    restart: unless-stopped
+    ports:
+      - 3030:3000
+    volumes:
+      - /home/fenkil/pcData/dumbpad/data:/app/data
