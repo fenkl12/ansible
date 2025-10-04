@@ -16,6 +16,16 @@
         dest: "/home/fenkil/dotfiles"
         version: main
         force: yes
+        update: yes
+
+    - name: Ensure repository is in sync with remote (discard any local changes)
+      shell: |
+        cd /home/fenkil/dotfiles
+        git fetch origin
+        git reset --hard origin/main
+        git clean -fd
+      become_user: fenkil
+      ignore_errors: yes
 
     - name: Find all playbooks in dotfiles/ansible_localPc
       find:
@@ -48,16 +58,16 @@
         owner: fenkil
         group: fenkil
 
-    - name: Add a cron job to pull the latest changes from the repository every Monday
+    - name: Add a cron job to force pull the latest changes from the repository every Monday
       cron:
-        name: "Git Pull for dotfiles"
+        name: "Git Force Pull for dotfiles"
         user: fenkil
         minute: 0
         hour: 0
         day: "*"
         month: "*"
         weekday: 1
-        job: "cd /home/fenkil/dotfiles && /usr/bin/git pull"
+        job: "cd /home/fenkil/dotfiles && /usr/bin/git fetch origin && /usr/bin/git reset --hard origin/main"
 
 
 #playbook has to run twice for zsh to work not sure why 
