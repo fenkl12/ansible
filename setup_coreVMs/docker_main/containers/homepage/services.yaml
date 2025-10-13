@@ -163,6 +163,14 @@
         icon: wekan.png
         href: http://10.0.10.30:4040
         description: Wekan.
+    - PdfDing:
+        icon: pdf.png
+        href: http://10.0.10.30:8181
+        description: PDF document manager.
+    - Mealie:
+        icon: mealie.png
+        href: http://10.0.10.30:4005
+        description: Recipe manager and meal planner.
     - Portainer:
         icon: portainer.png
         href: http://10.0.10.60:9000

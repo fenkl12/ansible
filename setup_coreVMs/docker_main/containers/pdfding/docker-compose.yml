@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  pdfding:
+    container_name: pdfding
+    image: mrmn/pdfding:latest
+    volumes:
+      - pdfding-sqlite_data:/home/nonroot/pdfding/db
+      - pdfding-media:/home/nonroot/pdfding/media
+      # If you use selinux it might be necessary to add the :Z after the volume
+      # - pdfding-sqlite_data:/home/nonroot/pdfding/db:Z
+      # - pdfding-media:/home/nonroot/pdfding/media:Z
+    environment:
+      - DEFAULT_THEME=${DEFAULT_THEME:-dark}
+      - DEFAULT_THEME_COLOR=${DEFAULT_THEME_COLOR:-blue}
+      # use a long random secret
+      - SECRET_KEY=${SECRET_KEY:-some_secret}
+      # the domain where you want to access PdfDing, e.g. pdfding.com
+      - HOST_NAME=${HOST_NAME:-10.0.10.30}
+      # In production set the following values to True
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-FALSE}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-FALSE}
+    ports:
+      - "8181:8000"
+
+volumes:
+  pdfding-sqlite_data:
+  pdfding-media:
