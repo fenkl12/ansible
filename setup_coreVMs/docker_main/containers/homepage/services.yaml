@@ -171,6 +171,10 @@
         icon: mealie.png
         href: http://10.0.10.30:4005
         description: Recipe manager and meal planner.
+    - Resume Reactive:
+        icon: resume.png
+        href: http://10.0.10.30:3080/dashboard/resumes
+        description: Resume Reactive
     - Portainer:
         icon: portainer.png
         href: http://10.0.10.60:9000
@@ -277,10 +281,22 @@
         icon: invoice.png
         href: http://10.0.234.16:7009
         description: Simple Invoice Analyzer
-    - Audit Checkclist:
+    - Audit Checklist:
         icon: audit.png
         href: http://10.0.234.16:7010
-        description: Audit Checkclist
+        description: Audit Checklist
+    - Meeting Notes:
+        icon: notes.png
+        href: http://10.0.234.16:7018
+        description: Meeting Notes
+    - Resume Builder:
+        icon: resume.png
+        href: http://10.0.234.16:7019
+        description: Resume Builder
+    - Language Learning:
+        icon: language.png
+        href: http://10.0.234.16:7014
+        description: Language Learning
 
 
 # - Hypervisor:

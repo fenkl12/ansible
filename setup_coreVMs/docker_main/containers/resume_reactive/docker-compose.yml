@@ -1,0 +1,102 @@
+# In this Docker Compose example, it assumes that you maintain a reverse proxy externally (or chose not to).
+# The only two exposed host ports here are from MinIO (:9010) and the app itself (:3080) on 10.0.10.30.
+# If these ports are changed, ensure that the env vars passed to the app are also changed accordingly.
+
+version: "3.9"
+
+services:
+  # Database (Postgres)
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - /home/fenkil/pcData/resume_reactive/postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: aL0n6Str0n6Pa5sw0rdtHa7isH4rdtoGu3s5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Storage (for image uploads)
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data
+    ports:
+      - "9010:9000"
+    volumes:
+      - /home/fenkil/pcData/resume_reactive/minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: aDiff3r3n7L0n6Str0n6Pas5w0rd
+
+  # Chrome Browser (for printing and previews)
+  chrome:
+    image: ghcr.io/browserless/chromium:v2.18.0 # Upgrading to newer versions causes issues
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TIMEOUT: 10000
+      CONCURRENT: 10
+      TOKEN: chrome_token
+      EXIT_ON_HEALTH_FAILURE: "true"
+      PRE_REQUEST_HEALTH_CHECK: "true"
+
+  app:
+    image: amruthpillai/reactive-resume:latest
+    restart: unless-stopped
+    ports:
+      - "3080:3000"
+    depends_on:
+      - postgres
+      - minio
+      - chrome
+    environment:
+      # -- Environment Variables --
+      PORT: 3000
+      NODE_ENV: production
+
+      # -- URLs --
+      PUBLIC_URL: http://10.0.10.30:3080 # Work PC Resume Builder entry
+      STORAGE_URL: http://10.0.10.30:9010/default # MinIO host mapping
+
+      # -- Printer (Chrome) --
+      CHROME_TOKEN: chrome_token
+      CHROME_URL: ws://chrome:3000
+
+      # -- Database (Postgres) --
+      DATABASE_URL: postgresql://postgres:aL0n6Str0n6Pa5sw0rdtHa7isH4rdtoGu3s5@postgres:5432/postgres
+
+      # -- Auth --
+      ACCESS_TOKEN_SECRET: changeme_access_token_secret
+      REFRESH_TOKEN_SECRET: changeme_refresh_token_secret
+
+      # -- Emails --
+      # if you want email to work, you need to umcomment the SMTP_URL line, and replace the smtp url with the details of your email provider and account.
+      MAIL_FROM: noreply@localhost
+      # SMTP_URL: smtp://user:pass@smtp:587 # Optional
+
+      # -- Storage (Minio) --
+      STORAGE_ENDPOINT: minio
+      STORAGE_PORT: 9000
+      STORAGE_REGION: us-east-1 # Optional
+      STORAGE_BUCKET: default
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: aDiff3r3n7L0n6Str0n6Pas5w0rd
+      STORAGE_USE_SSL: "false"
+      STORAGE_SKIP_BUCKET_CHECK: "false"
+
+      # -- Crowdin (Optional) --
+      # CROWDIN_PROJECT_ID:
+      # CROWDIN_PERSONAL_TOKEN:
+
+      # -- Email (Optional) --
+      ####-->>>>>>>>> IMPORTANT: If you enable email signups, ensure you change <<<<<<<<-------######
+      DISABLE_SIGNUPS: "false" # change to true if you don't want other users signing up (recommend you change it after you sign up your first user), and restart the container)
+      DISABLE_EMAIL_AUTH: "true" # change to false if you are setting up smtp email and want email authentication
+
