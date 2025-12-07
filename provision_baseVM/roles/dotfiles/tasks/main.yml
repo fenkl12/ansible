@@ -1,0 +1,66 @@
+---
+- name: Ensure Git is installed
+  apt:
+    name: git
+    state: present
+  when: ansible_os_family == "Ubuntu"
+
+- name: Clone the repository to the home directory
+  git:
+    repo: 'http://10.0.10.20:7000/fenkil/dotfiles.git'
+    dest: "/home/fenkil/dotfiles"
+    version: main
+    force: yes
+    update: yes
+
+- name: Ensure repository is in sync with remote (discard any local changes)
+  shell: |
+    cd /home/fenkil/dotfiles
+    git fetch origin
+    git reset --hard origin/main
+    git clean -fd
+  become_user: fenkil
+  ignore_errors: yes
+
+- name: Patch stow_zshrc.yml to prevent OMZ installer failure
+  replace:
+    path: /home/fenkil/dotfiles/ansible_localPc/stow_zshrc.yml
+    regexp: 'tools/install\.sh'
+    replace: 'tools/install.sh || true'
+  ignore_errors: yes
+
+- name: Remove existing .zshrc to prevent stow conflicts
+  file:
+    path: /home/fenkil/.zshrc
+    state: absent
+
+- name: Find all playbooks in dotfiles/ansible_localPc
+  find:
+    paths: "/home/fenkil/dotfiles/ansible_localPc"
+    patterns: "*.yml"
+  register: playbooks
+
+- name: Run the playbooks on the VM
+  ansible.builtin.command: ansible-playbook {{ item.path }}
+  with_items: "{{ playbooks.files }}"
+  args:
+    chdir: "/home/fenkil/dotfiles/ansible_localPc"
+  when: playbooks.matched > 0
+  ignore_errors: yes
+
+- name: Ensure .zshrc exists to avoid zsh-newuser-install prompt
+  file:
+    path: /home/fenkil/.zshrc
+    state: touch
+    owner: fenkil
+    group: fenkil
+    mode: '0644'
+
+- name: Change shell to Zsh for user fenkil
+  user:
+    name: fenkil
+    shell: /usr/bin/zsh
+
+- name: Add safe.directory configuration for the cloned repository
+  command: git config --global --add safe.directory /home/fenkil/dotfiles
+  become_user: fenkil

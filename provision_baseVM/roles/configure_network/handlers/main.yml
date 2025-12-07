@@ -1,0 +1,6 @@
+---
+- name: Restart networking
+  become: yes
+  service:
+    name: systemd-networkd
+    state: restarted

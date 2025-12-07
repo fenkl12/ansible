@@ -1,0 +1,71 @@
+---
+- name: Wait for SSH to become available
+  wait_for:
+    port: 22
+    host: "{{ ansible_host }}"
+    search_regex: OpenSSH
+    delay: 10
+    timeout: 600
+  delegate_to: localhost
+  become: no
+
+- name: Create netplan configuration directory if it does not exist
+  become: yes
+  file:
+    path: /etc/netplan
+    state: directory
+    mode: '0755'
+
+- name: Remove old netplan configurations
+  become: yes
+  file:
+    path: /etc/netplan/*.yaml
+    state: absent
+
+- name: Remove old network interfaces configurations
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/network/interfaces
+    - /etc/network/interfaces.d
+
+- name: Configure static IP address
+  become: yes
+  template:
+    src: static_ip.j2
+    dest: /etc/netplan/01-netcfg.yaml
+    mode: '0600'
+
+- name: Apply netplan configuration (Async)
+  become: yes
+  shell: netplan apply
+  async: 45
+  poll: 0
+  ignore_errors: yes
+
+- name: "Debug: show target static_ip"
+  debug:
+    msg: "Waiting for new IP '{{ static_ip | default('not-set') }}' to become reachable on port 22"
+
+- name: Wait for new IP to become reachable (polling)
+  wait_for:
+    host: "{{ static_ip | split('/') | first }}"
+    port: 22
+    timeout: 5
+    state: started
+  register: new_ip_check
+  until: new_ip_check is succeeded
+  retries: 60
+  delay: 5
+  delegate_to: localhost
+  become: no
+
+- name: "Debug: new IP check result"
+  debug:
+    var: new_ip_check
+
+- name: Update inventory hostname with new IP
+  set_fact:
+    ansible_host: "{{ static_ip | split('/') | first }}"

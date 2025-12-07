@@ -1,0 +1,96 @@
+---
+- name: Debug Proxmox VM creation payload
+  debug:
+    msg: 
+      {
+        "vmid": "{{ proxmox_vm_id }}",
+        "name": "{{ proxmox_vm_name }}",
+        "cores": "{{ proxmox_cores }}",
+        "memory": "{{ proxmox_memory }}",
+        "net0": "virtio,bridge=vmbr0",
+        "scsi0": "{{ proxmox_storage }}",
+        "boot": "cdn",
+        "serial0": "socket",    
+        "ostype": "l26",
+        "cdrom": "{{ proxmox_iso_path }}"
+      }
+      
+- name: Clone VM from template
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_template_vm_id }}/clone"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    body_format: json
+    body:
+      newid: "{{ proxmox_vm_id }}"
+      name: "{{ proxmox_vm_name }}"
+      full: 1
+    validate_certs: no
+    status_code: 200
+  register: clone_vm_response
+
+- name: Wait for clone operation to complete
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/tasks/{{ clone_vm_response.json.data }}/status"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    validate_certs: no
+  register: clone_task_status
+  until: clone_task_status.json.data.status == 'stopped'
+  retries: 120
+  delay: 5
+
+- name: Verify clone operation succeeded
+  fail:
+    msg: "Clone operation failed: {{ clone_task_status.json.data.exitstatus }}"
+  when: clone_task_status.json.data.exitstatus != 'OK'
+
+- name: Configure VM cores
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vm_id }}/config"
+    method: PUT
+    headers:
+      Content-Type: "application/json"
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    body_format: json
+    body:
+      cores: "{{ proxmox_cores }}"
+      memory: "{{ proxmox_memory }}"
+    validate_certs: no
+    status_code: 200
+
+- name: Start the VM
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vm_id }}/status/start"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    body_format: json
+    body: {}
+    validate_certs: no
+    status_code: 200
+  ignore_errors: yes # Ignore if already started
+
+- name: Wait for VM to be in 'running' state
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vm_id }}/status/current"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    validate_certs: no
+  register: vm_status
+  until: vm_status.json.data.status == 'running'
+  retries: 20
+  delay: 3
+
+- name: Wait for VM to be accessible via SSH
+  wait_for:
+    host: "{{ template_vm_ip }}"
+    port: 22
+    timeout: 300
+    search_regex: OpenSSH
+  delegate_to: localhost

@@ -67,7 +67,7 @@
         day: "*"
         month: "*"
         weekday: 1
-        job: "cd /home/fenkil/dotfiles && /usr/bin/git fetch origin && /usr/bin/git reset --hard origin/main"
+        job: "cd /home/fenkil/dotfiles && /usr/bin/git fetch origin && /usr/bin/git reset --hard origin/main && /usr/bin/git clean -fd"
 
 
 #playbook has to run twice for zsh to work not sure why 

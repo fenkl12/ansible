@@ -1,0 +1,37 @@
+---
+proxmox_api_url: "https://10.0.5.100:8006/api2/json"
+proxmox_node: "proxmox"
+# These should be overridden by extra vars or host vars
+proxmox_vm_id: "{{ proxmox_vm_id | default('203') }}"
+proxmox_vm_name: "{{ proxmox_vm_name | default('perSamba') }}"
+proxmox_template_vm_id: "{{ proxmox_template_vm_id | default('503') }}"
+
+proxmox_storage: "SAN2TB"
+proxmox_memory: 3096
+proxmox_cores: 2 
+proxmox_iso_path: "SAN2TB:iso/ubuntu-24.04-live-server-amd64.iso" 
+
+# SECURITY WARNING: It is highly recommended to move these secrets to an encrypted vault file
+# ansible-vault create group_vars/all/vault.yml
+proxmox_api_token_id: "root@pam!tony"
+proxmox_api_token_secret: "4729a1bc-ac3c-4c55-a02f-6b429bf1dc89"
+
+# static_ip is now expected to be passed via extra-vars from the script
+# static_ip: 10.0.5.55/16 
+static_ip_to_remove: "{{ static_ip_to_remove | default('10.0.6.30') }}"
+gateway_ip: 10.0.0.1
+network_interface: "ens18"
+
+nfs_server_ip: "10.0.203.171"
+auto_master_config: "/mnt /etc/auto.nfs --timeout=60"
+nfs_mounts:
+  - { name: "tn_media", path: "/mnt/tank/media" }
+  - { name: "tn_proxmoxVMData", path: "/mnt/tank/backups/proxmoxMaster/dataOnly" }
+
+source_directory: "/home/fenkil/pcData"
+destination_base_directory: "/mnt/tn_proxmoxVMData"
+
+# Provisioning user and sudo configuration
+provision_user: "fenkil"
+# Set to true to enable passwordless sudo for the provision_user during provisioning
+enable_passwordless_sudo: false

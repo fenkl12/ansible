@@ -175,6 +175,10 @@
         icon: resume.png
         href: http://10.0.10.30:3080/dashboard/resumes
         description: Resume Reactive
+    - Vikunja:
+        icon: vikunja.png
+        href: http://10.0.10.30:8123
+        description: Task manager (Vikunja).
     - Portainer:
         icon: portainer.png
         href: http://10.0.10.60:9000

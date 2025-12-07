@@ -1,0 +1,34 @@
+---
+- name: Provision Proxmox VM
+  hosts: proxmox
+  gather_facts: no
+  roles:
+    - provision_vm
+  tasks:
+    - name: Add new VM to in-memory inventory
+      add_host:
+        name: "new_provisioned_vm"
+        groups: "dynamic_new_vm"
+        ansible_host: "{{ template_vm_ip }}"
+        ansible_user: "fenkil"
+        ansible_ssh_private_key_file: "/home/fenkil/.ssh/id_rsa"
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+        ansible_become: yes
+
+- name: Configure Network and Base Setup
+  hosts: dynamic_new_vm
+  gather_facts: no
+  roles:
+    - configure_network
+
+- name: Install Packages and Dotfiles
+  hosts: dynamic_new_vm
+  gather_facts: yes
+  vars:
+    # Explicitly set the new IP for connection
+    ansible_host: "{{ static_ip | split('/') | first }}"
+    # Disable host key checking for the new IP as well
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+  roles:
+    - common_setup
+    - dotfiles

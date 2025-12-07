@@ -1,0 +1,47 @@
+---
+- name: Ensure the package cache is up to date
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install essential packages
+  apt:
+    name:
+      - git
+      - curl
+      - wget
+      - htop
+      - stow
+      - tmux
+      - ansible
+      - cron
+      - gcc
+      - rsync
+      - zsh
+    state: present
+
+- name: Set timezone
+  become: yes
+  timezone:
+    name: "America/Toronto"
+
+- name: Set system hostname
+  become: yes
+  hostname:
+    name: "{{ proxmox_vm_name }}"
+
+- name: Update /etc/hosts with new hostname
+  become: yes
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ proxmox_vm_name }}"
+    state: present
+
+- name: Enable passwordless sudo for provisioning user (optional)
+  become: yes
+  copy:
+    dest: "/etc/sudoers.d/{{ provision_user | default('fenkil') }}"
+    content: "{{ provision_user | default('fenkil') }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: '0440'
+  when: enable_passwordless_sudo | default(false)
