@@ -1,0 +1,36 @@
+---
+- name: Create VM from ISO
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - inventory.yml
+  roles:
+    - create_vm_iso
+
+- name: Wait for OS Installation
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - inventory.yml
+  tasks:
+    - name: Pause for Manual OS Installation
+      pause:
+        prompt: "VM {{ new_vm_id }} created. Please install the OS via Proxmox Console. Configure the IP to {{ static_ip | split('/') | first }} and ensure SSH is enabled. Press Enter when ready."
+
+    - name: Add new VM to inventory
+      add_host:
+        name: "new_iso_vm"
+        groups: "dynamic_new_vm"
+        ansible_host: "{{ static_ip | split('/') | first }}"
+        ansible_user: "{{ provision_user }}"
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+- name: Configure New VM
+  hosts: dynamic_new_vm
+  gather_facts: yes
+  vars_files:
+    - inventory.yml
+  roles:
+    - configure_network
+    - common_setup
+    - dotfiles

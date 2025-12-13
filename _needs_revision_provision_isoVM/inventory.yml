@@ -1,0 +1,35 @@
+all:
+  vars:
+    # Proxmox Connection
+    proxmox_api_url: "https://10.0.5.100:8006/api2/json"
+    proxmox_node: "proxmox"
+    proxmox_storage: "SAN2TB"
+    proxmox_iso_storage: "SAN2TB"
+    
+    # Secrets
+    proxmox_api_token_id: "root@pam!tony"
+    proxmox_api_token_secret: "4729a1bc-ac3c-4c55-a02f-6b429bf1dc89"
+    
+    # VM Settings
+    new_vm_id: 900
+    new_vm_name: "iso-provisioned-vm"
+    vm_memory: 4096
+    vm_cores: 2
+    vm_sockets: 1
+    iso_image: "ubuntu-24.04-live-server-amd64.iso"
+    
+    # Network Configuration (Target IP after install)
+    static_ip: "10.0.5.60/16"
+    gateway_ip: "10.0.0.1"
+    network_interface: "ens18"
+    
+    # User Configuration
+    provision_user: "fenkil"
+    enable_passwordless_sudo: true
+    
+    # NFS / Storage
+    nfs_server_ip: "10.0.203.171"
+    auto_master_config: "/mnt /etc/auto.nfs --timeout=60"
+    nfs_mounts:
+      - { name: "tn_media", path: "/mnt/tank/media" }
+      - { name: "tn_proxmoxVMData", path: "/mnt/tank/backups/proxmoxMaster/dataOnly" }

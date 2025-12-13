@@ -1,0 +1,167 @@
+---
+- name: Provision Proxmox LXC Container
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ playbook_dir }}/.venv/bin/python"
+    proxmox_host: "10.0.5.100"
+    proxmox_node: "proxmox"
+    default_storage: "SAN2TB"
+    default_net_bridge: "vmbr0"
+    default_gateway: "10.0.0.1"
+    template: "SAN2TB:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
+    ansible_local_dir: "/home/fenkil/dotfiles/ansible_localPc"
+    ssh_pub_key_path: "/home/fenkil/.ssh/id_rsa.pub"
+    nfs_server: "10.0.203.171"
+
+  vars_prompt:
+    - name: autofs_ack
+      prompt: "WARNING: autofs does not work in unprivileged LXC containers due to kernel restrictions. Press Enter to acknowledge"
+      private: false
+    - name: hostname
+      prompt: "Enter hostname for the new container"
+      private: false
+    - name: memory
+      prompt: "Memory (MB)"
+      default: "1096"
+      private: false
+    - name: cores
+      prompt: "CPU cores"
+      default: "1"
+      private: false
+
+  tasks:
+    - name: Fetch next available CTID and IP
+      command: .venv/bin/python scripts/fetch_info.py
+      register: fetch_info_output
+      changed_when: false
+
+    - name: Parse fetch info
+      set_fact:
+        new_ct_info: "{{ fetch_info_output.stdout | from_json }}"
+
+    - name: Display chosen configuration
+      debug:
+        msg: "Creating container '{{ hostname }}' with ID {{ new_ct_info.ctid }} and IP {{ new_ct_info.ip }}"
+
+    - name: Read SSH Public Key
+      slurp:
+        src: "{{ ssh_pub_key_path }}"
+      register: ssh_pub_key
+      ignore_errors: true
+
+    - name: Create LXC Container
+      community.general.proxmox:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ new_ct_info.token_id.split('!')[0] }}"
+        api_token_id: "{{ new_ct_info.token_id.split('!')[1] }}"
+        api_token_secret: "{{ new_ct_info.token_secret }}"
+        vmid: "{{ new_ct_info.ctid }}"
+        hostname: "{{ hostname }}"
+        node: "{{ proxmox_node }}"
+        password: "fenkil"
+        ostemplate: "{{ template }}"
+        storage: "{{ default_storage }}"
+        memory: "{{ memory }}"
+        cores: "{{ cores }}"
+        pubkey: "{{ ssh_pub_key.content | b64decode | trim }}"
+        netif:
+          net0: "name=eth0,bridge={{ default_net_bridge }},ip={{ new_ct_info.ip }}/16,gw={{ default_gateway }}"
+        features:
+          - nesting=1
+        onboot: true
+        state: present
+        validate_certs: false
+
+    - name: Start Container
+      community.general.proxmox:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ new_ct_info.token_id.split('!')[0] }}"
+        api_token_id: "{{ new_ct_info.token_id.split('!')[1] }}"
+        api_token_secret: "{{ new_ct_info.token_secret }}"
+        vmid: "{{ new_ct_info.ctid }}"
+        state: started
+        validate_certs: false
+
+    - name: Wait for SSH to become available
+      wait_for:
+        host: "{{ new_ct_info.ip }}"
+        port: 22
+        timeout: 300
+        search_regex: OpenSSH
+
+    - name: Run Base Ansible Playbook
+      command: >
+        ansible-playbook -i "{{ new_ct_info.ip }}," ansible/site.yml
+        -e '{"target_host": "{{ hostname }}", "ansible_user": "root", "ansible_python_interpreter": "/usr/bin/python3", "tower_pubkey": "{{ ssh_pub_key.content | b64decode | trim if ssh_pub_key.content is defined else "" }}", "nfs_server": "{{ nfs_server }}"}'
+        --ssh-extra-args="-o StrictHostKeyChecking=no"
+      environment:
+        ANSIBLE_HOST_KEY_CHECKING: "False"
+
+    - name: Add new container to inventory
+      add_host:
+        name: "{{ new_ct_info.ip }}"
+        groups: new_container
+        ansible_user: root
+        ansible_ssh_pass: fenkil
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+        ansible_python_interpreter: /usr/bin/python3
+
+- name: Configure Container Locally
+  hosts: new_container
+  gather_facts: false
+  tasks:
+    - name: Find all playbooks in dotfiles/ansible_localPc
+      find:
+        paths: "/home/fenkil/dotfiles/ansible_localPc"
+        patterns: "*.yml"
+        excludes: 
+          - "autofs.yml"
+          - "vars.yml"
+          - "stow_zshrc.yml"
+      register: playbooks
+
+    - name: Run the playbooks on the VM
+      ansible.builtin.command: ansible-playbook -i 'localhost,' -c local "{{ item.path }}"
+      with_items: "{{ playbooks.files }}"
+      args:
+        chdir: "/home/fenkil/dotfiles/ansible_localPc"
+      when: playbooks.matched > 0
+      ignore_errors: yes
+
+    - name: Run stow_zshrc.yml twice
+      ansible.builtin.command: ansible-playbook -i 'localhost,' -c local "/home/fenkil/dotfiles/ansible_localPc/stow_zshrc.yml"
+      loop: [1, 2]
+      ignore_errors: yes
+
+    - name: Change shell to Zsh for user fenkil
+      command: chsh -s /usr/bin/zsh fenkil
+      register: chsh_result
+
+    - name: Add safe.directory configuration for the cloned repository
+      command: git config --global --add safe.directory /home/fenkil/dotfiles
+      become_user: fenkil
+
+    - name: Change ownership of the dotfiles directory to fenkil
+      file:
+        path: "/home/fenkil/dotfiles"
+        state: directory
+        recurse: yes
+        owner: fenkil
+        group: fenkil
+
+    - name: Add a cron job to force pull the latest changes from the repository every Monday
+      cron:
+        name: "Git Force Pull for dotfiles"
+        user: fenkil
+        minute: "0"
+        hour: "0"
+        day: "*"
+        month: "*"
+        weekday: "1"
+        job: "cd /home/fenkil/dotfiles && /usr/bin/git fetch origin && /usr/bin/git reset --hard origin/main && /usr/bin/git clean -fd"
+
+    - name: Provisioning Complete
+      debug:
+        msg: "Provisioning complete. Connect via: ssh fenkil@{{ inventory_hostname }}"

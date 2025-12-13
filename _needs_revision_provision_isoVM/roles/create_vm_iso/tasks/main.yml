@@ -1,0 +1,46 @@
+---
+- name: Check if VM already exists
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ new_vm_id }}/status/current"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    validate_certs: no
+    status_code: [200, 400, 500] # 500/400 might happen if not found depending on version
+  register: vm_check
+  ignore_errors: yes
+
+- name: Create VM from ISO
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    body_format: json
+    body:
+      vmid: "{{ new_vm_id }}"
+      name: "{{ new_vm_name }}"
+      memory: "{{ vm_memory }}"
+      sockets: "{{ vm_sockets }}"
+      cores: "{{ vm_cores }}"
+      net0: "virtio,bridge=vmbr0"
+      scsi0: "{{ proxmox_storage }}:32" # 32GB disk
+      cdrom: "{{ proxmox_iso_storage }}:iso/{{ iso_image }}"
+      ostype: "l26" # Linux 2.6 - 6.x kernel
+      scsihw: "virtio-scsi-pci"
+    validate_certs: no
+    status_code: 200
+  when: vm_check.status != 200
+
+- name: Start VM
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ new_vm_id }}/status/start"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+    validate_certs: no
+    status_code: 200
+  register: start_vm
+  # Only start if we just created it or if explicitly requested
+  when: vm_check.status != 200

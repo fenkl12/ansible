@@ -1,0 +1,103 @@
+---
+- hosts: all
+  become: true
+  vars:
+    fenkil_user: fenkil
+    fenkil_password_plain: "fenkil"
+    fenkil_password_hash: "{{ fenkil_password_plain | password_hash('sha512') }}"
+    dotfiles_repo: "http://10.0.10.20:7000/fenkil/dotfiles.git"
+    dotfiles_dest: "/home/fenkil/dotfiles"
+    dotfiles_version: "main"
+    packages_required:
+      - git
+      - curl
+      - wget
+      - htop
+      - stow
+      - tmux
+      - ansible
+      - cron
+      - gcc
+      - openssh-server
+      - gnupg
+      - gnupg
+  tasks:
+    - name: Ensure apt cache is up to date
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: "{{ packages_required }}"
+        state: present
+
+    - name: Ensure user exists with sudo
+      ansible.builtin.user:
+        name: "{{ fenkil_user }}"
+        password: "{{ fenkil_password_hash }}"
+        shell: /bin/bash
+        groups: sudo
+        append: true
+        create_home: true
+
+    - name: Allow fenkil sudo without password
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/fenkil
+        content: "{{ fenkil_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Ensure SSH service enabled and running
+      ansible.builtin.service:
+        name: ssh
+        state: started
+        enabled: true
+
+    - name: Create .ssh directory
+      ansible.builtin.file:
+        path: "/home/{{ fenkil_user }}/.ssh"
+        state: directory
+        owner: "{{ fenkil_user }}"
+        group: "{{ fenkil_user }}"
+        mode: "0700"
+
+    - name: Add tower public key if provided
+      ansible.builtin.authorized_key:
+        user: "{{ fenkil_user }}"
+        key: "{{ tower_pubkey }}"
+        state: present
+      when: tower_pubkey | length > 0
+
+    - name: Ensure password authentication is allowed for SSH
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        state: present
+        backup: yes
+
+    - name: Restart SSH to apply config
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
+    - name: Ensure pcData directory exists
+      ansible.builtin.file:
+        path: "/home/{{ fenkil_user }}/pcData"
+        state: directory
+        owner: "{{ fenkil_user }}"
+        group: "{{ fenkil_user }}"
+        mode: "0755"
+
+    - name: Clone dotfiles
+      ansible.builtin.git:
+        repo: "{{ dotfiles_repo }}"
+        dest: "{{ dotfiles_dest }}"
+        force: true
+        update: true
+        accept_hostkey: true
+        version: "{{ dotfiles_version }}"
+      become_user: "{{ fenkil_user }}"
