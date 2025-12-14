@@ -9,13 +9,14 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}=== LXD Container Application Deployer ===${NC}"
 
 # 1. Scan for available containers
-echo -e "${BLUE}Scanning for available containers (10.0.70.10 - 10.0.70.50)...${NC}"
+echo -e "${BLUE}Scanning for available containers (10.0.70.20 - 10.0.70.50)...${NC}"
 available_ips=()
 
-for i in {10..50..10}; do
+for i in {20..50..10}; do
     target_ip="10.0.70.$i"
     # Ping check with 1 second timeout
     if ping -c 1 -W 1 "$target_ip" &> /dev/null; then
+
         available_ips+=("$target_ip")
         echo -e "${GREEN}Found: $target_ip${NC}"
     fi

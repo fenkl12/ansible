@@ -24,12 +24,11 @@
     
     - UptimeKuma:
         icon: uptime-kuma.png
-        href: http://10.0.10.50:3001
+        href: http://10.0.70.10:3001
         description: UptimeKuma.
         widget:
             type: uptimekuma
-            key: uk1_3FoU4LhfAm7BNp6AvgG97UK30Jb9_LSIi4iNUMrG
-            url: http://10.0.10.50:3001
+            url: http://10.0.70.10:3001
             slug: statuspageslug
             fields: ["up", "down", "uptime", "incident"]
 
@@ -302,6 +301,16 @@
         href: http://10.0.234.16:7014
         description: Language Learning
 
+- CT Docker:
+    - Portainer:
+        icon: portainer.png
+        href: http://10.0.70.20:9001
+        description: Portainer.
+
+    - DumbPad:
+        icon: pad.png
+        href: http://10.0.70.20:3030
+        description: DumbPad.
 
 # - Hypervisor:
 #     - Proxmox:

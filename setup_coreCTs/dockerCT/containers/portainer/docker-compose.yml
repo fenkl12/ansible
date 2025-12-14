@@ -1,0 +1,11 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    network_mode: host
+    # Tell Portainer specifically which ports to use
+    command: -p :9001
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/fenkil/pcData/portainer/data:/data

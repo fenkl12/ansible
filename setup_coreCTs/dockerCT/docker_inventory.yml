@@ -1,0 +1,2 @@
+[docker_hosts]
+10.0.70.20 ansible_user=fenkil

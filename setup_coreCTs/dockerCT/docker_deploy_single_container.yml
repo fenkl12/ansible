@@ -1,0 +1,45 @@
+---
+- name: Deploy Single Docker Container
+  hosts: all
+  become: yes
+  vars:
+    # container_name is passed via extra-vars
+    local_container_path: "{{ playbook_dir }}/containers/{{ container_name }}"
+    remote_apps_path: "/opt/docker_apps"
+    remote_container_path: "{{ remote_apps_path }}/{{ container_name }}"
+
+  tasks:
+    - name: Fail if container_name is not defined
+      fail:
+        msg: "The variable 'container_name' is not defined."
+      when: container_name is not defined
+
+    - name: Ensure remote apps directory exists
+      file:
+        path: "{{ remote_apps_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure specific container directory exists
+      file:
+        path: "{{ remote_container_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: "{{ local_container_path }}/docker-compose.yml"
+        dest: "{{ remote_container_path }}/docker-compose.yml"
+
+    - name: Ensure data directory exists with correct permissions
+      file:
+        path: "/home/fenkil/pcData/{{ container_name }}/data"
+        state: directory
+        mode: '0777'
+        recurse: yes
+
+    - name: Deploy container using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ remote_container_path }}"
+        state: present
+        docker_cli: /usr/bin/docker
