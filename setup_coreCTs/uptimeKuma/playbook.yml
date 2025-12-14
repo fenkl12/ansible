@@ -1,0 +1,89 @@
+---
+- name: Install Uptime Kuma
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install Docker dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update APT package index after adding Docker repo
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add fenkil user to docker group
+      user:
+        name: fenkil
+        groups: docker
+        append: yes
+    - name: Create Uptime Kuma data directory
+      file:
+        path: /home/fenkil/pcData/uptimeKumaDockerData
+        state: directory
+        owner: fenkil
+        group: fenkil
+        mode: '0755'
+
+    - name: Stop and remove existing Uptime Kuma container
+      docker_container:
+        name: uptime-kuma
+        state: absent
+        force_kill: yes
+      ignore_errors: yes
+
+    - name: Pull Uptime Kuma Docker image
+      docker_image:
+        name: louislam/uptime-kuma:1
+        source: pull
+
+    - name: Run Uptime Kuma Docker container
+      docker_container:
+        name: uptime-kuma
+        image: louislam/uptime-kuma:1
+        state: started
+        restart_policy: always
+        network_mode: host
+        volumes:
+          - "/home/fenkil/pcData/uptimeKumaDockerData:/app/data"
+
+    - name: Wait for Uptime Kuma to start
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 3001
+        state: started
+        delay: 10
+        timeout: 300
