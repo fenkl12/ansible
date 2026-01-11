@@ -1,0 +1,14 @@
+services:
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - PORT=5000
+      - TZ=America/Toronto
+    volumes:
+      - /home/fenkil/pcData/kavita/config:/config
+      - /home/fenkil/pcData/kavita/data:/data
+    network_mode: host     
+    restart: unless-stopped

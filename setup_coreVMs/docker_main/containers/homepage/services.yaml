@@ -109,6 +109,10 @@
         icon: focalboard.png
         href: http://10.0.10.30:7000
         description: Focalboard.
+    - BeaverHabits:
+        icon: beaverhabits.png
+        href: http://10.0.10.30:4010
+        description: BeaverHabits.
     - FreshRSS:
         icon: freshrss.png
         href: http://10.0.10.30:32768
@@ -226,7 +230,16 @@
     - n8n:
         icon: n8n.png
         href: http://10.0.203.20:3002
-
+    - kasm:
+        icon: kasm.png
+        href: https://10.0.203.20:443
+    - mcpJS:
+        icon: mcp.png
+        href: http://10.0.203.20:3000
+    - Obsidian:
+        icon: obsidian.png
+        href: http://10.0.203.20:4000
+        description: Obsidian.
 - TN-Docker-Apps-IP30:
     - Portainer:
         icon: portainer.png
@@ -310,6 +323,11 @@
     - DumbPad:
         icon: pad.png
         href: http://10.0.70.20:3030
+        description: DumbPad.
+
+    - Kavita:
+        icon: pad.png
+        href: http://10.0.70.20:5000
         description: DumbPad.
 
 # - Hypervisor:
