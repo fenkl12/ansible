@@ -20,9 +20,9 @@ layout:
   TN-Docker-Apps-IP30:
     style: row
     columns: 2
-  Work-PC-Docker:
+  Work-PC-Docker-Apps:
     style:  row
-    columns: 7   
+    columns: 6
 
 providers:
   openweathermap: openweathermapapikey

@@ -256,35 +256,47 @@
         href: http://10.0.203.30:3000
         description: Obsidian.
 
-- Work-PC-Docker:
+- Work-PC-Docker-Apps:
     - MarkItDown converter:
         icon: markdown.png
         href: http://10.0.234.16:7000
         description: MarkItDown converter
-    - Email analysis:
-        icon: email.png
-        href: http://10.0.234.16:7003
-        description: Email analysis
     - Change control helper:
         icon: changecontrol.png
         href: http://10.0.234.16:7001
         description: Change control helper
-    - Quality Event Helper:
+    - Change Control JS Frontend:
+        icon: react.png
+        href: http://10.0.234.16:7101
+        description: Change Control JS Frontend
+    - QE Completion (Gradio):
         icon: QE.png
         href: http://10.0.234.16:7011
-        description: Quality Event Helper
-    - Root cause analysis:
-        icon: rootcause.png
-        href: http://10.0.234.16:7002
-        description: Root cause analysis
+        description: QE Completion (Gradio)
+    - QE Helper JS Frontend:
+        icon: react.png
+        href: http://10.0.234.16:7111
+        description: QE Helper JS Frontend
+    - Email analysis:
+        icon: email.png
+        href: http://10.0.234.16:7003
+        description: Email analysis
     - SOP reviewer:
         icon: sop.png
         href: http://10.0.234.16:7004
         description: SOP reviewer
+    - SOP Reviewer JS Frontend:
+        icon: react.png
+        href: http://10.0.234.16:7401
+        description: SOP Reviewer JS Frontend
     - WorkSimpleRAG:
         icon: worksimplerag.png
         href: http://10.0.234.16:7005
         description: WorkSimpleRAG
+    - Root cause analysis:
+        icon: rootcause.png
+        href: http://10.0.234.16:7002
+        description: Root cause analysis
     - WorkVault (document management):
         icon: workvault.png
         href: http://10.0.234.16:7006
@@ -293,26 +305,66 @@
         icon: coa.png
         href: http://10.0.234.16:7007
         description: COA Analyzer (certificate analysis)
-    - Simple Invoice Analyzer:
+    - Simple invoice verifier:
         icon: invoice.png
         href: http://10.0.234.16:7009
-        description: Simple Invoice Analyzer
-    - Audit Checklist:
+        description: Simple invoice verifier
+    - Audit checklist application:
         icon: audit.png
         href: http://10.0.234.16:7010
-        description: Audit Checklist
-    - Meeting Notes:
-        icon: notes.png
-        href: http://10.0.234.16:7018
-        description: Meeting Notes
-    - Resume Builder:
-        icon: resume.png
-        href: http://10.0.234.16:7019
-        description: Resume Builder
-    - Language Learning:
+        description: Audit checklist application
+    - Language learning (FastRTC):
         icon: language.png
         href: http://10.0.234.16:7014
-        description: Language Learning
+        description: Language learning (FastRTC)
+    - Voice Chat Application:
+        icon: audio.png
+        href: http://10.0.234.16:7015
+        description: Voice Chat Application
+    - Work meeting notes:
+        icon: notes.png
+        href: http://10.0.234.16:7018
+        description: Work meeting notes
+    - Resume builder:
+        icon: resume.png
+        href: http://10.0.234.16:7019
+        description: Resume builder
+    - COA DeepSeek OCR analyzer:
+        icon: coa.png
+        href: http://10.0.234.16:7021
+        description: COA DeepSeek OCR analyzer
+    - Llama-Swap:
+        icon: llama.png
+        href: http://10.0.234.16:8111
+        description: Llama-Swap
+    - MindCore Gateway:
+        icon: gateway.png
+        href: http://10.0.234.16:5100
+        description: MindCore Gateway
+
+- APIs:
+    - Change Control JS Backend:
+        href: http://10.0.234.16:7100
+    - QE Helper JS Backend:
+        href: http://10.0.234.16:7112
+    - SOP Reviewer JS Backend:
+        href: http://10.0.234.16:7400
+    - MindCore RAG API:
+        href: http://10.0.234.16:5101
+    - MindCore CC API:
+        href: http://10.0.234.16:5102
+    - MindCore QE API:
+        href: http://10.0.234.16:5103
+    - Langfuse Server:
+        href: http://10.0.234.16:2200
+    - Speech synthesis API:
+        href: http://10.0.234.16:8000
+    - Simple invoice verifier API:
+        href: http://10.0.234.16:8002
+    - Kokoro TTS API:
+        href: http://10.0.234.16:8880
+    - Langfuse Database:
+        href: http://10.0.234.16:5432
 
 - CT Docker:
     - Portainer:
