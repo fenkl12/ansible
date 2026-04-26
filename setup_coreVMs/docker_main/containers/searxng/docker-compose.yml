@@ -1,0 +1,47 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun-searxng
+    restart: unless-stopped
+
+    cap_add:
+      - NET_ADMIN
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # SearXNG shares Gluetun's network namespace, so publish SearXNG's
+    # port on Gluetun, not on the searxng service.
+    ports:
+      - "8888:8080"
+
+    environment:
+      - VPN_SERVICE_PROVIDER=nordvpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=fWFpmfBnoXrFQcGemFWWjHrq
+      - OPENVPN_PASSWORD=c3AnVBB3qCwn3RMy7qUY32k9
+      - TZ=America/Toronto
+      - UPDATER_PERIOD=24h
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+
+    volumes:
+      - /home/fenkil/pcData/arr-stack/searxng/gluetun:/gluetun
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+
+    network_mode: "service:gluetun"
+
+    depends_on:
+      - gluetun
+
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888/
+      - SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
+      - TZ=America/Toronto
+
+    volumes:
+      - /home/fenkil/pcData/arr-stack/searxng/config:/etc/searxng
+      - /home/fenkil/pcData/arr-stack/searxng/data:/var/lib/searxng

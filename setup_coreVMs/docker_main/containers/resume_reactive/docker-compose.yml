@@ -2,8 +2,6 @@
 # The only two exposed host ports here are from MinIO (:9010) and the app itself (:3080) on 10.0.10.30.
 # If these ports are changed, ensure that the env vars passed to the app are also changed accordingly.
 
-version: "3.9"
-
 services:
   # Database (Postgres)
   postgres:
@@ -36,7 +34,7 @@ services:
 
   # Chrome Browser (for printing and previews)
   chrome:
-    image: ghcr.io/browserless/chromium:v2.18.0 # Upgrading to newer versions causes issues
+    image: ghcr.io/browserless/chromium:v2.17.0 # Upgrading to newer versions causes issues
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -53,43 +51,45 @@ services:
     ports:
       - "3080:3000"
     depends_on:
-      - postgres
-      - minio
-      - chrome
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      chrome:
+        condition: service_started
     environment:
       # -- Environment Variables --
       PORT: 3000
       NODE_ENV: production
 
       # -- URLs --
-      PUBLIC_URL: http://10.0.10.30:3080 # Work PC Resume Builder entry
-      STORAGE_URL: http://10.0.10.30:9010/default # MinIO host mapping
+      APP_URL: http://10.0.10.30:3080 # Work PC Resume Builder entry
+      # STORAGE_URL: http://10.0.10.30:9010/default # MinIO host mapping (Internal)
 
       # -- Printer (Chrome) --
-      CHROME_TOKEN: chrome_token
-      CHROME_URL: ws://chrome:3000
+      PRINTER_ENDPOINT: ws://chrome:3000?token=chrome_token
 
       # -- Database (Postgres) --
       DATABASE_URL: postgresql://postgres:aL0n6Str0n6Pa5sw0rdtHa7isH4rdtoGu3s5@postgres:5432/postgres
 
       # -- Auth --
-      ACCESS_TOKEN_SECRET: changeme_access_token_secret
-      REFRESH_TOKEN_SECRET: changeme_refresh_token_secret
+      AUTH_SECRET: 9da3620c8d72aba27b27ed63645474f3618d33a08f8641138a1b570e4b4bf570
 
       # -- Emails --
       # if you want email to work, you need to umcomment the SMTP_URL line, and replace the smtp url with the details of your email provider and account.
-      MAIL_FROM: noreply@localhost
+      # MAIL_FROM: noreply@localhost
       # SMTP_URL: smtp://user:pass@smtp:587 # Optional
 
       # -- Storage (Minio) --
-      STORAGE_ENDPOINT: minio
-      STORAGE_PORT: 9000
-      STORAGE_REGION: us-east-1 # Optional
-      STORAGE_BUCKET: default
-      STORAGE_ACCESS_KEY: minioadmin
-      STORAGE_SECRET_KEY: aDiff3r3n7L0n6Str0n6Pas5w0rd
-      STORAGE_USE_SSL: "false"
-      STORAGE_SKIP_BUCKET_CHECK: "false"
+      S3_ENDPOINT: http://minio:9000
+      S3_PORT: 9000
+      S3_REGION: us-east-1 # Optional
+      S3_BUCKET: default
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: aDiff3r3n7L0n6Str0n6Pas5w0rd
+      S3_USE_SSL: "false"
+      S3_FORCE_PATH_STYLE: "true"
+      S3_SKIP_BUCKET_CHECK: "false"
 
       # -- Crowdin (Optional) --
       # CROWDIN_PROJECT_ID:

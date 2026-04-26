@@ -17,7 +17,7 @@ services:
       - /home/fenkil/pcData/wekan_work/db:/data/db
 
   app:
-    image: wekanteam/wekan:latest
+    image: wekanteam/wekan:v7.80
     container_name: wekan-app
     restart: always
     environment:

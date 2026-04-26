@@ -26,7 +26,6 @@
       when: not container_dir.stat.exists
       run_once: true
 
-
     - name: Find all files for the specified container
       find:
         paths: "./containers/{{ container_name }}"
@@ -44,16 +43,6 @@
         group: fenkil
         mode: '0755'
 
-    - name: Copy container files to target host
-      copy:
-        src: "{{ item.path }}"
-        dest: "/home/fenkil/pcData/{{ container_name }}/{{ item.path | relpath('./containers/' + container_name) }}"
-        owner: fenkil
-        group: fenkil
-        mode: preserve
-      with_items: "{{ container_files.files }}"
-      when: item.isreg
-
     - name: Create subdirectories on target host
       file:
         path: "/home/fenkil/pcData/{{ container_name }}/{{ item.path | relpath('./containers/' + container_name) }}"
@@ -63,6 +52,26 @@
         mode: '0755'
       with_items: "{{ container_files.files }}"
       when: item.isdir
+
+    - name: Ensure parent directories exist for files
+      file:
+        path: "/home/fenkil/pcData/{{ container_name }}/{{ (item.path | relpath('./containers/' + container_name)) | dirname }}"
+        state: directory
+        owner: fenkil
+        group: fenkil
+        mode: '0755'
+      with_items: "{{ container_files.files }}"
+      when: item.isreg
+
+    - name: Copy container files to target host
+      copy:
+        src: "{{ item.path }}"
+        dest: "/home/fenkil/pcData/{{ container_name }}/{{ item.path | relpath('./containers/' + container_name) }}"
+        owner: fenkil
+        group: fenkil
+        mode: preserve
+      with_items: "{{ container_files.files }}"
+      when: item.isreg
 
     - name: Check if docker-compose.yml exists for the container
       stat:
@@ -85,7 +94,7 @@
         path: "{{ item.split(':')[0] }}"
       with_items: "{{ compose_data.services[container_name].volumes | default([]) }}"
       register: volume_dir_stats
-      when: 
+      when:
         - compose_file.stat.exists
         - item.split(':')[0].startswith('/home/fenkil/')
 
@@ -97,7 +106,7 @@
         group: fenkil
         mode: '0777'
       with_items: "{{ volume_dir_stats.results | default([]) }}"
-      when: 
+      when:
         - compose_file.stat.exists
         - item.item is defined
         - item.item.split(':')[0].startswith('/home/fenkil/')
