@@ -1,0 +1,18 @@
+services:
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:latest
+    container_name: obsidian
+    security_opt:
+      - seccomp:unconfined #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+      - CUSTOM_PORT=3000
+      - CUSTOM_PORT=3001
+      - DISABLE_HTTPS=true
+    volumes:
+      - /home/fenkil/pcData/obsidian/config:/config
+
+    network_mode: host
+    restart: unless-stopped

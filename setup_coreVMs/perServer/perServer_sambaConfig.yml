@@ -22,7 +22,7 @@
         path: /gkp/tn_smb
         src: "//10.0.203.171/gkp"
         fstype: cifs
-        opts: "username=fenkil,password=bolice90,uid=1000,gid=1000,rw"
+        opts: "username=fenkil,password=test123,uid=1000,gid=1000,rw"
         state: mounted
       become: yes
       
