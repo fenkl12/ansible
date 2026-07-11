@@ -1,0 +1,7 @@
+---
+vm_profile: workstation
+dotfiles_repo: 'http://10.0.10.20:7000/fenkil/dotfiles.git'
+dotfiles_nested_playbook: ""
+nfs_server: '10.0.203.171'
+nfs_media_export: '/mnt/tank/media'
+nfs_media_mount: '/mnt/tn_media'

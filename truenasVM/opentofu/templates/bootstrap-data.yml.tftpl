@@ -1,0 +1,40 @@
+#cloud-config
+hostname: ${hostname}
+manage_etc_hosts: true
+users:
+  - default
+  - name: ${ssh_user}
+    groups: [adm, sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+ssh_pwauth: false
+package_update: true
+packages:
+  - qemu-guest-agent
+write_files:
+  - path: /etc/netplan/99-truenas-static.yaml
+    permissions: "0600"
+    content: |
+      network:
+        version: 2
+        ethernets:
+          primary:
+            match:
+              name: "e*"
+            dhcp4: false
+            addresses: [${ip_address}/${prefix_length}]
+            routes:
+              - to: default
+                via: ${gateway}
+            nameservers:
+              addresses: ${jsonencode(dns_servers)}
+runcmd:
+  - [hostnamectl, set-hostname, "${hostname}"]
+  - [netplan, apply]
+  - [apt-get, update]
+  - [apt-get, install, -y, qemu-guest-agent]
+  - [systemctl, enable, --now, qemu-guest-agent]
+

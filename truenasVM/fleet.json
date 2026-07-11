@@ -1,0 +1,9 @@
+{
+  "deployments": {
+    "test_IP40": {
+      "base_name": "test",
+      "ip_address": "10.0.203.40",
+      "profile": "workstation"
+    }
+  }
+}

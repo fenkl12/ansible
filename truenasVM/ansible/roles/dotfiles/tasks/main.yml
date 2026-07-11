@@ -1,0 +1,59 @@
+---
+- name: Resolve dotfiles user
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ dotfiles_user }}"
+- name: Clone or update dotfiles without discarding local changes
+  become_user: "{{ dotfiles_user }}"
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repo }}"
+    dest: "{{ dotfiles_directory }}"
+    version: "{{ dotfiles_version }}"
+    update: true
+    force: false
+- name: Ensure dotfiles ownership
+  ansible.builtin.file:
+    path: "{{ dotfiles_directory }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    recurse: true
+- name: Use Zsh as login shell
+  ansible.builtin.user:
+    name: "{{ dotfiles_user }}"
+    shell: /usr/bin/zsh
+- name: Schedule weekly fast-forward-only dotfiles update
+  ansible.builtin.cron:
+    name: Update dotfiles repository
+    user: "{{ dotfiles_user }}"
+    minute: "0"
+    hour: "0"
+    weekday: "{{ dotfiles_update_weekday }}"
+    job: "cd {{ dotfiles_directory | quote }} && /usr/bin/git pull --ff-only"
+- name: Validate nested playbook path
+  ansible.builtin.assert:
+    that:
+      - not dotfiles_nested_playbook.startswith('/')
+      - "'..' not in dotfiles_nested_playbook.split('/')"
+      - dotfiles_nested_playbook.endswith('.yml') or dotfiles_nested_playbook.endswith('.yaml')
+    fail_msg: dotfiles_nested_playbook must be a relative YAML path inside the dotfiles repository
+  when: dotfiles_nested_playbook | length > 0
+- name: Check configured nested playbook
+  ansible.builtin.stat:
+    path: "{{ dotfiles_directory }}/{{ dotfiles_nested_playbook }}"
+  register: nested_playbook
+  when: dotfiles_nested_playbook | length > 0
+- name: Require configured nested playbook to exist
+  ansible.builtin.assert:
+    that: nested_playbook.stat.isreg | default(false)
+    fail_msg: Configured dotfiles playbook does not exist
+  when: dotfiles_nested_playbook | length > 0
+- name: Run configured dotfiles playbook
+  become_user: "{{ dotfiles_user }}"
+  ansible.builtin.command:
+    argv: [ansible-playbook, "{{ dotfiles_nested_playbook }}"]
+    chdir: "{{ dotfiles_directory }}"
+  register: nested_result
+  changed_when: "'changed=0' not in nested_result.stdout"
+  when: dotfiles_nested_playbook | length > 0
+

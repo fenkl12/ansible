@@ -1,0 +1,42 @@
+#cloud-config
+autoinstall:
+  version: 1
+  network:
+    version: 2
+    ethernets:
+      primary:
+        match:
+          name: "e*"
+        dhcp4: false
+        addresses: [${ip_address}/${prefix_length}]
+        routes:
+          - to: default
+            via: ${gateway}
+        nameservers:
+          addresses: ${jsonencode(dns_servers)}
+  identity:
+    hostname: ${hostname}
+    username: ${ssh_user}
+    password: "!"
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - ${ssh_public_key}
+  user-data:
+    disable_root: true
+    users:
+      - default
+      - name: ${ssh_user}
+        groups: [adm, sudo]
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        lock_passwd: true
+        ssh_authorized_keys:
+          - ${ssh_public_key}
+    package_update: true
+    packages:
+      - qemu-guest-agent
+    runcmd:
+      - [systemctl, enable, --now, qemu-guest-agent]
+

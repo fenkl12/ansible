@@ -1,0 +1,23 @@
+---
+- name: Update APT cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+- name: Install workstation packages
+  ansible.builtin.apt:
+    name: "{{ vm_packages }}"
+    state: present
+- name: Read current timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: current_timezone
+  changed_when: false
+- name: Configure timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ vm_timezone }}"
+  when: current_timezone.stdout != vm_timezone
+  changed_when: true
+- name: Enable cron
+  ansible.builtin.service:
+    name: cron
+    enabled: true
+    state: started
+

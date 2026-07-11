@@ -1,0 +1,30 @@
+---
+- name: Create autofs mount root
+  ansible.builtin.file:
+    path: "{{ nfs_media_mount | dirname }}"
+    state: directory
+    mode: "0755"
+- name: Configure media indirect map
+  ansible.builtin.copy:
+    dest: /etc/auto.truenas
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {{ nfs_media_mount | basename }} -fstype=nfs4,rw,soft,timeo=30 {{ nfs_server }}:{{ nfs_media_export }}
+  notify: Restart autofs
+- name: Register TrueNAS autofs map
+  ansible.builtin.lineinfile:
+    path: /etc/auto.master.d/truenas.autofs
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    line: "{{ nfs_media_mount | dirname }} /etc/auto.truenas --timeout={{ autofs_timeout }}"
+  notify: Restart autofs
+- name: Enable autofs
+  ansible.builtin.service:
+    name: autofs
+    enabled: true
+    state: started
+

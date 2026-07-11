@@ -1,0 +1,4 @@
+---
+vm_timezone: America/Toronto
+vm_packages: [ansible, autofs, cron, curl, gcc, git, htop, nfs-common, rsync, stow, tmux, wget, zsh]
+

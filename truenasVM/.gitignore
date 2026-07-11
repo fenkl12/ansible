@@ -1,0 +1,10 @@
+.secrets/
+.tools/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+build/
+__pycache__/
+*.retry
+
