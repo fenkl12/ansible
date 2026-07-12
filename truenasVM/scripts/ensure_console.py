@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 
+from console_password import password_for_vm
 from truenas_ops import api
 
 if len(sys.argv) != 2:
@@ -13,10 +14,6 @@ if len(sys.argv) != 2:
 root = Path(__file__).resolve().parents[1]
 name = sys.argv[1]
 deployment = json.loads((root / "deployments" / name / "deployment.auto.tfvars.json").read_text())
-password_path = root / ".secrets" / f"{name}.console_password"
-if not password_path.is_file():
-    raise SystemExit(f"missing console password: {password_path}")
-
 vm = next((item for item in api("vm") if item.get("name") == deployment["vm_name"]), None)
 if not vm:
     raise SystemExit("VM was not found")
@@ -31,7 +28,7 @@ if not display:
             "attributes": {
                 "type": "SPICE",
                 "bind": "0.0.0.0",
-                "password": password_path.read_text().strip(),
+                "password": password_for_vm(name),
                 "web": True,
                 "wait": False,
                 "resolution": "1024x768",

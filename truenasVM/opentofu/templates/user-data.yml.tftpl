@@ -17,26 +17,34 @@ autoinstall:
   identity:
     hostname: ${hostname}
     username: ${ssh_user}
-    password: "!"
+    password: "${login_password_hash}"
   ssh:
     install-server: true
-    allow-pw: false
+    allow-pw: true
     authorized-keys:
       - ${ssh_public_key}
   user-data:
     disable_root: true
+    ssh_pwauth: true
     users:
       - default
       - name: ${ssh_user}
         groups: [adm, sudo]
         shell: /bin/bash
         sudo: ALL=(ALL) NOPASSWD:ALL
-        lock_passwd: true
+        lock_passwd: false
+        passwd: "${login_password_hash}"
         ssh_authorized_keys:
           - ${ssh_public_key}
+    write_files:
+      - path: /etc/ssh/sshd_config.d/99-password-authentication.conf
+        permissions: "0600"
+        content: |
+          PasswordAuthentication yes
     package_update: true
     packages:
       - qemu-guest-agent
     runcmd:
       - [systemctl, enable, --now, qemu-guest-agent]
+      - [systemctl, restart, ssh]
 

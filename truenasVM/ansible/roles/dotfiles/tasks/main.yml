@@ -30,30 +30,40 @@
     hour: "0"
     weekday: "{{ dotfiles_update_weekday }}"
     job: "cd {{ dotfiles_directory | quote }} && /usr/bin/git pull --ff-only"
-- name: Validate nested playbook path
+- name: Validate configured nested playbook paths
   ansible.builtin.assert:
     that:
-      - not dotfiles_nested_playbook.startswith('/')
-      - "'..' not in dotfiles_nested_playbook.split('/')"
-      - dotfiles_nested_playbook.endswith('.yml') or dotfiles_nested_playbook.endswith('.yaml')
-    fail_msg: dotfiles_nested_playbook must be a relative YAML path inside the dotfiles repository
-  when: dotfiles_nested_playbook | length > 0
-- name: Check configured nested playbook
+      - item is string
+      - item | length > 0
+      - not item.startswith('/')
+      - "'..' not in item.split('/')"
+      - item.endswith('.yml') or item.endswith('.yaml')
+    fail_msg: Nested playbooks must be relative YAML paths inside the dotfiles repository
+  loop: "{{ dotfiles_nested_playbooks }}"
+  loop_control:
+    label: "{{ item }}"
+- name: Check configured nested playbooks
   ansible.builtin.stat:
-    path: "{{ dotfiles_directory }}/{{ dotfiles_nested_playbook }}"
-  register: nested_playbook
-  when: dotfiles_nested_playbook | length > 0
-- name: Require configured nested playbook to exist
+    path: "{{ dotfiles_directory }}/{{ item }}"
+  loop: "{{ dotfiles_nested_playbooks }}"
+  loop_control:
+    label: "{{ item }}"
+  register: nested_playbook_files
+- name: Require configured nested playbooks to exist
   ansible.builtin.assert:
-    that: nested_playbook.stat.isreg | default(false)
-    fail_msg: Configured dotfiles playbook does not exist
-  when: dotfiles_nested_playbook | length > 0
-- name: Run configured dotfiles playbook
+    that: item.stat.isreg | default(false)
+    fail_msg: "Configured nested playbook does not exist: {{ item.item }}"
+  loop: "{{ nested_playbook_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+- name: Run configured nested playbooks
   become_user: "{{ dotfiles_user }}"
   ansible.builtin.command:
-    argv: [ansible-playbook, "{{ dotfiles_nested_playbook }}"]
-    chdir: "{{ dotfiles_directory }}"
+    argv: [ansible-playbook, "{{ item | basename }}"]
+    chdir: "{{ dotfiles_directory }}/{{ item | dirname }}"
+  loop: "{{ dotfiles_nested_playbooks }}"
+  loop_control:
+    label: "{{ item }}"
   register: nested_result
   changed_when: "'changed=0' not in nested_result.stdout"
-  when: dotfiles_nested_playbook | length > 0
 

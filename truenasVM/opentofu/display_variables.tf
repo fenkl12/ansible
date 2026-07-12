@@ -4,3 +4,9 @@ variable "display_password" {
   sensitive   = true
 }
 
+variable "login_password_hash" {
+  type        = string
+  description = "SHA-512 crypt hash for the guest login password."
+  sensitive   = true
+}
+

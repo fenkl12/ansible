@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import socket
+import shutil
 import ssl
 import subprocess
 import sys
@@ -26,6 +27,12 @@ DEFAULT_URL = "https://10.0.203.171"
 SUFFIXES = range(20, 241, 10)
 NAME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9-]{1,40}$")
 IP_NAME_RE = re.compile(r"_IP(\d{1,3})$")
+DEFAULT_DOTFILES_PLAYBOOKS = (
+    "ansible_localPc/stow_zshrc.yml",
+    "ansible_localPc/stow_nvim.yml",
+    "ansible_localPc/stow_codex.yml",
+    "ansible_localPc/stow_myScripts.yml",
+)
 
 
 class FactoryError(RuntimeError):
@@ -165,7 +172,7 @@ def deployment_path(vm: str) -> Path:
     return DEPLOYMENTS / vm
 
 
-def register(base_name: str, final_name: str, address: str, nested_playbook: str) -> None:
+def register(base_name: str, final_name: str, address: str) -> None:
     validate_base_name(base_name)
     ipaddress.ip_address(address)
     expected_suffix = address.rsplit(".", 1)[1]
@@ -189,8 +196,9 @@ def register(base_name: str, final_name: str, address: str, nested_playbook: str
         "---\n"
         "vm_profile: workstation\n"
         "dotfiles_repo: 'http://10.0.10.20:7000/fenkil/dotfiles.git'\n"
-        f"dotfiles_nested_playbook: {json.dumps(nested_playbook)}\n"
-        "nfs_server: '10.0.203.171'\n"
+        "dotfiles_nested_playbooks:\n"
+        + "".join(f"  - {json.dumps(playbook)}\n" for playbook in DEFAULT_DOTFILES_PLAYBOOKS)
+        + "nfs_server: '10.0.203.171'\n"
         "nfs_media_export: '/mnt/tank/media'\n"
         "nfs_media_mount: '/mnt/tn_media'\n"
     )
@@ -221,7 +229,6 @@ def cmd_create(_: argparse.Namespace) -> None:
         selected = options[int(raw) - 1]
     except (ValueError, IndexError) as exc:
         raise FactoryError("Invalid selection") from exc
-    nested = input("Dotfiles playbook relative path (blank to skip): ").strip()
     confirm = input(f"Register {selected[0]} at {selected[1]}? [y/N]: ").strip().lower()
     if confirm not in {"y", "yes"}:
         print("Cancelled")
@@ -229,7 +236,7 @@ def cmd_create(_: argparse.Namespace) -> None:
     latest = suggestions(base, count=24)
     if selected not in latest:
         raise FactoryError("The selected name or IP became unavailable; run again")
-    register(base, selected[0], selected[1], nested)
+    register(base, selected[0], selected[1])
     print(f"Registered {selected[0]}. Run: make deploy VM={selected[0]}")
 
 
@@ -248,6 +255,36 @@ def cmd_list(_: argparse.Namespace) -> None:
         print(f"{name:<36} {item['ip_address']:<16} {item.get('profile', '')}")
 
 
+def cmd_remove(args: argparse.Namespace) -> None:
+    target = deployment_path(args.vm)
+    if target.resolve().parent != DEPLOYMENTS.resolve():
+        raise FactoryError("Invalid deployment name")
+    deployment = get_deployment(args.vm)
+    vm_names = {vm.get("name") for vm in api_get("vm")}
+    if deployment["vm_name"] in vm_names:
+        raise FactoryError(f"VM still exists: {deployment['vm_name']}; destroy it before removing the deployment")
+    zvol_name = f"{deployment['storage_pool']}/{deployment['vm_name'].lower().replace('_', '-')}-disk0"
+    datasets = {item.get("id") for item in api_get("pool/dataset")}
+    if zvol_name in datasets:
+        raise FactoryError(f"Zvol still exists: {zvol_name}; run make destroy-disk VM={args.vm} first")
+
+    build_target = ROOT / "build" / args.vm
+    if build_target.resolve().parent != (ROOT / "build").resolve():
+        raise FactoryError("Invalid deployment name")
+    shutil.rmtree(target)
+    if build_target.exists():
+        shutil.rmtree(build_target)
+    for secret_name in (f"{args.vm}.console_password", f"{args.vm}.login_password", f"{args.vm}.login_password_hash"):
+        secret_path = ROOT / ".secrets" / secret_name
+        if secret_path.exists():
+            secret_path.unlink()
+    fleet = load_fleet()
+    fleet.setdefault("deployments", {}).pop(args.vm, None)
+    atomic_json(FLEET, fleet)
+    print(f"Removed deployment files: {target.relative_to(ROOT)}")
+    print(f"Removed fleet entry: {args.vm}")
+
+
 def get_deployment(vm: str) -> dict[str, Any]:
     path = deployment_path(vm) / "deployment.auto.tfvars.json"
     if not path.is_file():
@@ -261,9 +298,10 @@ def cmd_preflight(args: argparse.Namespace) -> None:
     version = str(system.get("version", ""))
     if "24.04" not in version:
         raise FactoryError(f"Expected TrueNAS 24.04, found {version}; validate provider compatibility")
-    vm_names = {vm.get("name") for vm in api_get("vm")}
     state_exists = (deployment_path(args.vm) / "terraform.tfstate").exists()
-    if deployment["vm_name"] in vm_names and not state_exists:
+    existing_vm_names = {vm.get("name") for vm in api_get("vm")}
+    # Never let a fresh deployment provision over an already-existing TrueNAS VM name.
+    if deployment["vm_name"] in existing_vm_names and not state_exists:
         raise FactoryError("VM exists in TrueNAS but this deployment has no state; import it before continuing")
     if not state_exists and ping_in_use(deployment["ip_address"]):
         raise FactoryError(f"IP responds before first deployment: {deployment['ip_address']}")
@@ -311,6 +349,9 @@ def parser() -> argparse.ArgumentParser:
     suggest.add_argument("--name")
     suggest.set_defaults(func=cmd_suggest)
     sub.add_parser("list").set_defaults(func=cmd_list)
+    remove = sub.add_parser("remove")
+    remove.add_argument("--vm", required=True)
+    remove.set_defaults(func=cmd_remove)
     for command, function in (("preflight", cmd_preflight), ("inventory", cmd_inventory), ("wait", cmd_wait)):
         item = sub.add_parser(command)
         item.add_argument("--vm", required=True)

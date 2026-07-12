@@ -12,6 +12,7 @@ import ssl
 import sys
 import time
 from typing import Any
+from urllib.parse import quote
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -35,11 +36,12 @@ def token() -> str:
     raise OpsError("TRUENAS_API_KEY is unavailable")
 
 
-def api(endpoint: str, payload: Any | None = None) -> Any:
+def api(endpoint: str, payload: Any | None = None, method: str | None = None) -> Any:
+    method = method or ("GET" if payload is None else "POST")
     request = Request(
         f"{API_URL}/{endpoint.lstrip('/')}",
         data=None if payload is None else json.dumps(payload).encode(),
-        method="GET" if payload is None else "POST",
+        method=method,
         headers={"Authorization": f"Bearer {token()}", "Content-Type": "application/json"},
     )
     context = ssl.create_default_context()
@@ -82,6 +84,28 @@ def find_vm(name: str) -> dict[str, Any] | None:
     return next((vm for vm in api("vm") if vm.get("name") == name), None)
 
 
+def zvol_name(item: dict[str, Any]) -> str:
+    return f"{item.get('storage_pool', 'WD1TB')}/{item['vm_name'].lower().replace('_', '-')}-disk0"
+
+
+def cmd_retire_disk(args: argparse.Namespace) -> None:
+    item = deployment(args.vm)
+    if find_vm(item["vm_name"]):
+        raise OpsError(f"VM still exists: {item['vm_name']}; run make destroy VM={args.vm} first")
+
+    name = zvol_name(item)
+    dataset = next((entry for entry in api("pool/dataset") if entry.get("id") == name), None)
+    if not dataset:
+        raise OpsError(f"Zvol was not found: {name}; OpenTofu state was left unchanged")
+    if dataset.get("type") != "VOLUME":
+        raise OpsError(f"Refusing to delete non-zvol dataset: {name}")
+
+    deleted = api(f"pool/dataset/id/{quote(name, safe='')}", method="DELETE")
+    if deleted is not True:
+        raise OpsError(f"TrueNAS did not confirm deletion of zvol: {name}")
+    print(f"Zvol deleted: {name}")
+
+
 def cmd_verify(args: argparse.Namespace) -> None:
     item = deployment(args.vm)
     vm = find_vm(item["vm_name"])
@@ -118,7 +142,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(required=True)
     sub.add_parser("secret").set_defaults(func=cmd_secret)
-    for name, func in (("preflight", cmd_preflight), ("verify", cmd_verify), ("wait", cmd_wait)):
+    for name, func in (("preflight", cmd_preflight), ("verify", cmd_verify), ("wait", cmd_wait), ("retire-disk", cmd_retire_disk)):
         command = sub.add_parser(name)
         command.add_argument("--vm", required=True)
         if name == "wait":

@@ -3,6 +3,6 @@ dotfiles_user: fenkil
 dotfiles_repo: http://10.0.10.20:7000/fenkil/dotfiles.git
 dotfiles_version: main
 dotfiles_directory: "/home/{{ dotfiles_user }}/dotfiles"
-dotfiles_nested_playbook: ""
+dotfiles_nested_playbooks: []
 dotfiles_update_weekday: "1"
 

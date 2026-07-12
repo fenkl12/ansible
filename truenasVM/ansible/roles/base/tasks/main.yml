@@ -20,4 +20,18 @@
     name: cron
     enabled: true
     state: started
+- name: Set VM login password
+  ansible.builtin.user:
+    name: "{{ vm_login_user }}"
+    password: "{{ vm_login_password_hash }}"
+    update_password: always
+  no_log: true
+- name: Enable SSH password authentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-password-authentication.conf
+    content: "PasswordAuthentication yes\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart SSH
 
