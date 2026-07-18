@@ -194,7 +194,6 @@ def register(base_name: str, final_name: str, address: str) -> None:
     }
     ansible_vars = (
         "---\n"
-        "vm_profile: workstation\n"
         "dotfiles_repo: 'http://10.0.10.20:7000/fenkil/dotfiles.git'\n"
         "dotfiles_nested_playbooks:\n"
         + "".join(f"  - {json.dumps(playbook)}\n" for playbook in DEFAULT_DOTFILES_PLAYBOOKS)
@@ -209,7 +208,7 @@ def register(base_name: str, final_name: str, address: str) -> None:
     fleet.setdefault("deployments", {})[final_name] = {
         "base_name": base_name,
         "ip_address": address,
-        "profile": "workstation",
+        "core_profile": None,
     }
     atomic_json(FLEET, fleet)
 
@@ -252,7 +251,10 @@ def cmd_list(_: argparse.Namespace) -> None:
         print("No deployments registered")
         return
     for name, item in sorted(deployments.items()):
-        print(f"{name:<36} {item['ip_address']:<16} {item.get('profile', '')}")
+        marker = ROOT / "build" / name / "base-configured.json"
+        base_status = "base-ready" if marker.is_file() else "base-pending"
+        profile = item.get("core_profile") or "unassigned"
+        print(f"{name:<36} {item['ip_address']:<16} {base_status:<13} {profile}")
 
 
 def cmd_remove(args: argparse.Namespace) -> None:
@@ -373,4 +375,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

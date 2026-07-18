@@ -5,13 +5,17 @@
     state: directory
     mode: "0755"
 - name: Configure media indirect map
-  ansible.builtin.copy:
+  ansible.builtin.lineinfile:
     dest: /etc/auto.truenas
+    create: true
     owner: root
     group: root
     mode: "0644"
-    content: |
-      {{ nfs_media_mount | basename }} -fstype=nfs4,rw,soft,timeo=30 {{ nfs_server }}:{{ nfs_media_export }}
+    regexp: "^{{ nfs_media_mount | basename | regex_escape }}\\s"
+    line: >-
+      {{ nfs_media_mount | basename }}
+      -fstype=nfs4,rw,soft,timeo=30
+      {{ nfs_server }}:{{ nfs_media_export }}
   notify: Restart autofs
 - name: Register TrueNAS autofs map
   ansible.builtin.lineinfile:
@@ -27,4 +31,3 @@
     name: autofs
     enabled: true
     state: started
-

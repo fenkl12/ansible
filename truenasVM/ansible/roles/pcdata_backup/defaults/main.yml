@@ -1,0 +1,9 @@
+---
+pcdata_backup_source: /home/fenkil/pcData
+pcdata_backup_nfs_server: 10.0.203.171
+pcdata_backup_nfs_export: /mnt/tank/backups/truenasVM/dataOnly
+pcdata_backup_mount: /mnt/tn_truenasVMData
+pcdata_backup_folder: "{{ inventory_hostname }}"
+pcdata_backup_compose_projects: []
+pcdata_backup_timer: "*-*-* 00:00:00"
+pcdata_backup_service_name: pcdata-backup

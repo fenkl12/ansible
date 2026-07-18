@@ -1,0 +1,13 @@
+[Unit]
+Description=Mirror pcData to TrueNAS
+After=network-online.target autofs.service docker.service
+Wants=network-online.target
+Requires=autofs.service docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/backup-pcdata
+TimeoutStartSec=infinity
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

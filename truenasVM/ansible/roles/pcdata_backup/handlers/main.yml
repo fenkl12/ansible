@@ -1,0 +1,9 @@
+---
+- name: Restart autofs for pcData backup
+  ansible.builtin.service:
+    name: autofs
+    state: restarted
+
+- name: Reload systemd for pcData backup
+  ansible.builtin.systemd_service:
+    daemon_reload: true

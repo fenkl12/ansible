@@ -1,0 +1,12 @@
+---
+# Leave empty to derive the hostname from the registered VM name.
+# Override docker_main_hostname in deployments/<vm>/ansible-vars.yml when needed.
+docker_main_hostname: ""
+docker_main_user: fenkil
+docker_main_data_root: /home/fenkil/pcData
+docker_main_portainer_directory: "{{ docker_main_data_root }}/portainer"
+docker_main_database_directory: "{{ docker_main_data_root }}/postgres"
+docker_main_postgres_image: pgvector/pgvector:pg16
+docker_main_postgres_database: app
+docker_main_postgres_user: app
+docker_main_postgres_password: change-me

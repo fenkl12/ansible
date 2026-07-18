@@ -38,8 +38,17 @@
         mode: '0777'
         recurse: yes
 
-    - name: Deploy container using Docker Compose
+    - name: Deploy container using Docker Compose (with pull)
       community.docker.docker_compose_v2:
         project_src: "{{ remote_container_path }}"
         state: present
         docker_cli: /usr/bin/docker
+        pull: always
+      when: pull_latest is defined and pull_latest|bool
+
+    - name: Deploy container using Docker Compose (without pull)
+      community.docker.docker_compose_v2:
+        project_src: "{{ remote_container_path }}"
+        state: present
+        docker_cli: /usr/bin/docker
+      when: pull_latest is not defined or not pull_latest|bool

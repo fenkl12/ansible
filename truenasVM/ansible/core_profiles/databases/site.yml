@@ -1,0 +1,108 @@
+---
+- name: Configure databases core profile
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - vars.yml
+  vars:
+    docker_main_effective_hostname: >-
+      {{
+        docker_main_hostname
+        if (docker_main_hostname | default('') | length > 0)
+        else (inventory_hostname | truenas_hostname)
+      }}
+  pre_tasks:
+    - name: Validate databases hostname
+      ansible.builtin.assert:
+        that:
+          - docker_main_effective_hostname | length <= 63
+          - docker_main_effective_hostname is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+        fail_msg: docker_main_hostname must be a valid DNS hostname
+
+    - name: Set databases hostname
+      ansible.builtin.hostname:
+        name: "{{ docker_main_effective_hostname }}"
+
+    - name: Register databases hostname locally
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^127\\.0\\.1\\.1\\s+"
+        line: "127.0.1.1 {{ docker_main_effective_hostname }}"
+        state: present
+
+  tasks:
+    - name: Install Docker Engine
+      ansible.builtin.include_role:
+        name: docker_engine
+      vars:
+        docker_engine_users:
+          - "{{ docker_main_user }}"
+
+    - name: Create Portainer data directory
+      ansible.builtin.file:
+        path: "{{ docker_main_portainer_directory }}/data"
+        state: directory
+        owner: "{{ docker_main_user }}"
+        group: "{{ docker_main_user }}"
+        mode: "0750"
+    - name: Create PostgreSQL data directory
+      ansible.builtin.file:
+        path: "{{ docker_main_database_directory }}/data"
+        state: directory
+        owner: "{{ docker_main_user }}"
+        group: "{{ docker_main_user }}"
+        mode: "0750"
+
+    - name: Install Portainer Compose definition
+      ansible.builtin.template:
+        src: portainer-compose.yml.j2
+        dest: "{{ docker_main_portainer_directory }}/compose.yml"
+        owner: "{{ docker_main_user }}"
+        group: "{{ docker_main_user }}"
+        mode: "0640"
+
+
+    - name: Install PostgreSQL schema
+      ansible.builtin.copy:
+        src: schema.sql
+        dest: "{{ docker_main_database_directory }}/schema.sql"
+        owner: "{{ docker_main_user }}"
+        group: "{{ docker_main_user }}"
+        mode: "0640"
+
+    - name: Install PostgreSQL Compose definition
+      ansible.builtin.template:
+        src: postgres-compose.yml.j2
+        dest: "{{ docker_main_database_directory }}/compose.yml"
+        owner: "{{ docker_main_user }}"
+        group: "{{ docker_main_user }}"
+        mode: "0640"
+
+    - name: Deploy PostgreSQL
+      community.docker.docker_compose_v2:
+        project_src: "{{ docker_main_database_directory }}"
+        files:
+          - compose.yml
+        state: present
+        pull: always
+        remove_orphans: true
+
+    - name: Deploy Portainer
+      community.docker.docker_compose_v2:
+        project_src: "{{ docker_main_portainer_directory }}"
+        files:
+          - compose.yml
+        state: present
+        pull: always
+        remove_orphans: true
+
+    - name: Configure pcData backups
+      ansible.builtin.include_role:
+        name: pcdata_backup
+      vars:
+        pcdata_backup_source: "{{ docker_main_data_root }}"
+        pcdata_backup_folder: "{{ inventory_hostname }}"
+        pcdata_backup_compose_projects:
+          - "{{ docker_main_database_directory }}"
+          - "{{ docker_main_portainer_directory }}"

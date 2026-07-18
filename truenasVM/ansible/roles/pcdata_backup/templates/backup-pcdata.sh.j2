@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SOURCE={{ pcdata_backup_source | quote }}
+BACKUP_ROOT={{ pcdata_backup_mount | quote }}
+DESTINATION={{ (pcdata_backup_mount ~ '/' ~ pcdata_backup_folder) | quote }}
+LOCK_FILE=/run/lock/pcdata-backup.lock
+COMPOSE_PROJECTS=(
+{% for project in pcdata_backup_compose_projects %}
+  {{ project | quote }}
+{% endfor %}
+)
+STOPPED_PROJECTS=()
+
+exec 9>"$LOCK_FILE"
+if ! flock --nonblock 9; then
+  echo "Another pcData backup is already running" >&2
+  exit 1
+fi
+
+# Trigger autofs, then refuse to continue if the destination is local storage.
+ls -ld "$BACKUP_ROOT" >/dev/null
+if ! findmnt --noheadings --types nfs,nfs4 --target "$BACKUP_ROOT" >/dev/null; then
+  echo "Backup destination is not mounted from NFS: $BACKUP_ROOT" >&2
+  exit 1
+fi
+
+mkdir -p "$DESTINATION"
+
+restart_projects() {
+  local status=$?
+  trap - EXIT INT TERM
+  for project in "${STOPPED_PROJECTS[@]}"; do
+    docker compose --project-directory "$project" start || status=1
+  done
+  exit "$status"
+}
+trap restart_projects EXIT INT TERM
+
+for project in "${COMPOSE_PROJECTS[@]}"; do
+  docker compose --project-directory "$project" stop
+  STOPPED_PROJECTS+=("$project")
+done
+
+rsync --archive --delete --numeric-ids "$SOURCE/" "$DESTINATION/"

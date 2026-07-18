@@ -38,6 +38,8 @@ class FactoryTests(unittest.TestCase):
             config = (deployments / "test_IP40" / "ansible-vars.yml").read_text(encoding="utf-8")
             for playbook in factory.DEFAULT_DOTFILES_PLAYBOOKS:
                 self.assertIn(f"  - {factory.json.dumps(playbook)}\n", config)
+            registry = factory.json.loads(fleet_path.read_text(encoding="utf-8"))
+            self.assertIsNone(registry["deployments"]["test_IP40"]["core_profile"])
 
     def test_remove_deployment_refuses_existing_vm(self):
         with tempfile.TemporaryDirectory() as directory:

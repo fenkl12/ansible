@@ -1,0 +1,2 @@
+-- Add database schema statements here.
+-- Applied automatically only when PostgreSQL initializes an empty data directory.

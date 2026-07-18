@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly pcData backup to TrueNAS
+
+[Timer]
+OnCalendar={{ pcdata_backup_timer }}
+Persistent=true
+Unit={{ pcdata_backup_service_name }}.service
+
+[Install]
+WantedBy=timers.target

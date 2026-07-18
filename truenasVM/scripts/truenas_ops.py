@@ -19,6 +19,10 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_FILE = ROOT / ".secrets/truenas.env"
 API_URL = "https://10.0.203.171/api/v2.0"
+BACKUP_PARENT_DATASET = "tank/backups/truenasVM"
+BACKUP_DATASET = f"{BACKUP_PARENT_DATASET}/dataOnly"
+BACKUP_EXPORT_PATH = f"/mnt/{BACKUP_DATASET}"
+BACKUP_NETWORK = "10.0.0.0/16"
 
 
 class OpsError(RuntimeError):
@@ -67,6 +71,58 @@ def file_stat(path: str) -> dict[str, Any]:
 
 def cmd_secret(_: argparse.Namespace) -> None:
     print(token())
+
+
+def backup_storage_problems() -> list[str]:
+    problems: list[str] = []
+
+    datasets = {item.get("id"): item for item in api("pool/dataset")}
+    for name in (BACKUP_PARENT_DATASET, BACKUP_DATASET):
+        dataset = datasets.get(name)
+        if not dataset:
+            problems.append(f"missing dataset {name}")
+        elif dataset.get("type") != "FILESYSTEM":
+            problems.append(f"dataset is not a filesystem: {name}")
+
+    shares = [item for item in api("sharing/nfs") if item.get("path") == BACKUP_EXPORT_PATH]
+    if not shares:
+        problems.append(f"missing NFS export {BACKUP_EXPORT_PATH}")
+    else:
+        share = shares[0]
+        if not share.get("enabled"):
+            problems.append("backup NFS export is disabled")
+        if share.get("ro", share.get("readonly", False)):
+            problems.append("backup NFS export is read-only")
+        if BACKUP_NETWORK not in (share.get("networks") or []):
+            problems.append(f"backup NFS export does not authorize {BACKUP_NETWORK}")
+        if share.get("maproot_user") != "root":
+            problems.append("backup NFS export does not map root to root")
+
+    tasks = [item for item in api("pool/snapshottask") if item.get("dataset") == BACKUP_DATASET]
+    if not tasks:
+        problems.append(f"missing snapshot task for {BACKUP_DATASET}")
+    else:
+        task = tasks[0]
+        schedule = task.get("schedule") or {}
+        if not task.get("enabled"):
+            problems.append("backup snapshot task is disabled")
+        if task.get("lifetime_value") != 30 or task.get("lifetime_unit") != "DAY":
+            problems.append("backup snapshot retention is not 30 days")
+        if schedule.get("hour") != "2" or schedule.get("minute") != "0":
+            problems.append("backup snapshot schedule is not daily at 02:00")
+
+    return problems
+
+
+def cmd_backup_storage_check(_: argparse.Namespace) -> None:
+    problems = backup_storage_problems()
+    if problems:
+        detail = "; ".join(problems)
+        raise OpsError(
+            f"Shared backup storage is unavailable or unhealthy: {detail}. "
+            "Run make backup-storage-apply once, then retry."
+        )
+    print(f"Backup storage OK: {BACKUP_DATASET} exported at {BACKUP_EXPORT_PATH}")
 
 
 def cmd_preflight(args: argparse.Namespace) -> None:
@@ -142,6 +198,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(required=True)
     sub.add_parser("secret").set_defaults(func=cmd_secret)
+    sub.add_parser("backup-storage-check").set_defaults(func=cmd_backup_storage_check)
     for name, func in (("preflight", cmd_preflight), ("verify", cmd_verify), ("wait", cmd_wait), ("retire-disk", cmd_retire_disk)):
         command = sub.add_parser(name)
         command.add_argument("--vm", required=True)
@@ -159,4 +216,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

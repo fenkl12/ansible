@@ -1,0 +1,16 @@
+---
+services:
+
+  db:
+    image: {{ docker_main_postgres_image }}
+    container_name: pgvector-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: {{ docker_main_postgres_database | quote }}
+      POSTGRES_USER: {{ docker_main_postgres_user | quote }}
+      POSTGRES_PASSWORD: {{ docker_main_postgres_password | quote }}
+    volumes:
+      - {{ docker_main_database_directory }}/data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro

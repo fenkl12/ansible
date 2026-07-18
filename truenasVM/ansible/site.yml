@@ -7,9 +7,8 @@
     - name: Require supported Ubuntu guest
       ansible.builtin.assert:
         that: ansible_distribution == 'Ubuntu'
-        fail_msg: The workstation profile currently supports Ubuntu only.
+        fail_msg: The TrueNAS VM base configuration currently supports Ubuntu only.
   roles:
     - role: base
     - role: media_autofs
     - role: dotfiles
-

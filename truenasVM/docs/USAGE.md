@@ -4,11 +4,17 @@ Install OpenTofu 1.7+, Python 3.11+, Ansible, `make`, `ping`, and `ip`. The prov
 
 Store `TRUENAS_API_KEY=...` in `.secrets/truenas.env` with mode `0600`. Set `VM_SSH_PUBLIC_KEY` if the guest key is not `~/.ssh/id_ed25519.pub` or `~/.ssh/id_rsa.pub`.
 
-## Register and deploy
+Install the pinned Ansible collection dependencies once:
+
+```sh
+make dependencies
+```
+
+## Register and provision the base
 
 ```sh
 make new-vm
-make deploy VM=web_IP40
+make provision-base VM=web_IP40
 make vm-password VM=web_IP40
 ```
 
@@ -22,9 +28,122 @@ Each VM has committed non-secret configuration under `deployments/<name>/`. Its 
 make list
 make suggest NAME=web
 make plan VM=web_IP40
-make configure VM=web_IP40
+make configure-base VM=web_IP40
 make check
 ```
+
+`deploy` and `configure` remain base-only aliases for older command lines.
+
+## Core profiles
+
+Every VM may be assigned one core profile. A profile is the repository-owned desired state for software,
+services, configuration, containers, users, and other VM-specific behavior. Create a scaffold and replace
+its placeholder task:
+
+```sh
+make new-core-profile PROFILE=databases
+# Edit ansible/core_profiles/databases/site.yml and vars.yml
+make setup-core VM=web_IP40 PROFILE=databases
+```
+
+The first core run saves the assignment. Later runs do not need `PROFILE`:
+
+```sh
+make setup-core VM=web_IP40
+make preview VM=web_IP40
+make reconcile VM=web_IP40
+```
+
+`setup-core` applies only the assigned profile and requires a successful base configuration.
+`reconcile` reapplies the base first and then the assigned core profile. This is the normal entrypoint
+for all later guest changes.
+
+To deliberately change a VM's identity, run:
+
+```sh
+make change-core-profile VM=web_IP40 PROFILE=media-server
+```
+
+This does not remove state installed by the old profile. Rebuild the VM for a strictly clean transition.
+
+## Reproducibility rules
+
+- Do not make persistent changes directly on a managed VM. Declare them in the base or its core profile.
+- Keep profile tasks idempotent and rerunnable.
+- Removing an installation task does not uninstall its result. Add an explicit `state: absent` task when
+  removing a managed package, file, service, user, or container from existing guests.
+- Commit Compose files, templates, and other non-secret configuration alongside the profile.
+- Keep credentials outside Git and inject them through the existing secrets mechanism or Ansible Vault.
+- Repository package versions may advance unless a profile explicitly pins them. The target is the same
+  declared services and configuration, rather than a byte-identical disk.
+
+`make preview` performs an OpenTofu plan and Ansible check/diff for both configuration layers. Ansible
+check mode is best-effort for modules that do not fully support it. The command never applies infrastructure;
+use `make apply` explicitly for reviewed TrueNAS resource changes.
+
+## Shared VM backup storage
+
+The backup dataset, NFS export, and snapshot schedule have their own OpenTofu state and are not owned by
+any VM. Preview and create them once:
+
+```sh
+make backup-storage-plan
+make backup-storage-apply
+make backup-storage-check
+```
+
+This creates:
+
+- `tank/backups/truenasVM/dataOnly` with protected parent and child datasets.
+- A writable NFS export at `/mnt/tank/backups/truenasVM/dataOnly`, restricted to `10.0.0.0/16`.
+- Daily snapshots at 02:00 with 30-day retention.
+
+The state under `opentofu/backup-storage/` is ignored and must be backed up securely. The stack has no
+destroy target, and its datasets and NFS share use `prevent_destroy`.
+
+`backup-storage-apply` is the explicit one-time creation/reconciliation command. Core-profile commands
+never invoke it. Backup-enabled profiles run `backup-storage-check` before assignment or Ansible changes;
+if either dataset, the writable NFS export, or the 30-day snapshot task is unavailable, they stop and tell
+the operator to run the one-time apply command.
+
+## Docker-main profile
+
+The included `databases` profile installs Docker Engine from Docker's official Ubuntu repository,
+installs Compose v2, and deploys only Portainer:
+
+```sh
+make setup-core VM=databases_IP40 PROFILE=databases
+```
+
+Portainer is exposed on port `9000`; its persistent data and Compose definition live under
+`/home/fenkil/pcData/portainer`. Other legacy databases projects are not migrated.
+
+The guest hostname defaults to the registered VM name converted to lowercase DNS form. For example,
+`databases_IP40` becomes `databases-ip40`. Override it per deployment by adding:
+
+```yaml
+docker_main_hostname: databases
+```
+
+to `deployments/<vm>/ansible-vars.yml`. Backup directories continue using the stable registered VM name,
+so changing the guest hostname does not split backup history.
+
+The profile mounts the shared export at `/mnt/tn_truenasVMData` and installs a persistent midnight systemd
+timer. A backup verifies the destination is NFS, stops Portainer, mirrors all of `/home/fenkil/pcData` with
+deletion propagation, and restarts Portainer even when rsync fails. Run one immediately with:
+
+```sh
+make backup-now VM=databases_IP40
+```
+
+Inspect scheduled and manual runs with:
+
+```sh
+systemctl status pcdata-backup.timer
+journalctl -u pcdata-backup.service
+```
+
+Because the mirror propagates deletions, use the TrueNAS snapshots to recover older files.
 
 ## Retire a VM
 
@@ -58,4 +177,5 @@ New VMs run these dotfiles playbooks from the cloned repository: Zsh, Neovim, Co
 - Preflight rejects unmanaged duplicate VM names and responding addresses.
 - Do not delete a deployment or its state before deliberately retiring its VM.
 - Preflight stops after an upgrade away from TrueNAS 24.04 pending compatibility review.
-
+- Reconciliation never applies OpenTofu changes.
+- Core profiles cannot run until base configuration has completed successfully.

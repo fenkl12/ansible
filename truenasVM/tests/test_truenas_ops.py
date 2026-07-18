@@ -18,6 +18,79 @@ class SecretTests(unittest.TestCase):
                 self.assertEqual(ops.token(), "value;$PATH`unsafe`")
 
 
+class BackupStorageTests(unittest.TestCase):
+    def healthy_responses(self):
+        return [
+            [
+                {"id": ops.BACKUP_PARENT_DATASET, "type": "FILESYSTEM"},
+                {"id": ops.BACKUP_DATASET, "type": "FILESYSTEM"},
+            ],
+            [
+                {
+                    "path": ops.BACKUP_EXPORT_PATH,
+                    "enabled": True,
+                    "ro": False,
+                    "networks": [ops.BACKUP_NETWORK],
+                    "maproot_user": "root",
+                }
+            ],
+            [
+                {
+                    "dataset": ops.BACKUP_DATASET,
+                    "enabled": True,
+                    "lifetime_value": 30,
+                    "lifetime_unit": "DAY",
+                    "schedule": {"hour": "2", "minute": "0"},
+                }
+            ],
+        ]
+
+    @patch.object(ops, "api")
+    def test_healthy_storage_uses_read_only_queries(self, api):
+        api.side_effect = self.healthy_responses()
+
+        self.assertEqual(ops.backup_storage_problems(), [])
+        self.assertEqual(
+            api.call_args_list,
+            [call("pool/dataset"), call("sharing/nfs"), call("pool/snapshottask")],
+        )
+
+    @patch.object(ops, "api")
+    def test_missing_storage_reports_every_required_resource(self, api):
+        api.side_effect = [[], [], []]
+
+        problems = ops.backup_storage_problems()
+
+        self.assertTrue(any(ops.BACKUP_PARENT_DATASET in item for item in problems))
+        self.assertTrue(any(ops.BACKUP_DATASET in item for item in problems))
+        self.assertTrue(any("NFS export" in item for item in problems))
+        self.assertTrue(any("snapshot task" in item for item in problems))
+
+    @patch.object(ops, "api")
+    def test_misconfigured_share_and_snapshot_are_rejected(self, api):
+        responses = self.healthy_responses()
+        responses[1][0].update(
+            {"enabled": False, "ro": True, "networks": [], "maproot_user": "nobody"}
+        )
+        responses[2][0].update(
+            {"enabled": False, "lifetime_value": 7, "schedule": {"hour": "1", "minute": "30"}}
+        )
+        api.side_effect = responses
+
+        problems = ops.backup_storage_problems()
+
+        self.assertIn("backup NFS export is disabled", problems)
+        self.assertIn("backup NFS export is read-only", problems)
+        self.assertIn("backup snapshot task is disabled", problems)
+        self.assertIn("backup snapshot retention is not 30 days", problems)
+        self.assertIn("backup snapshot schedule is not daily at 02:00", problems)
+
+    @patch.object(ops, "backup_storage_problems", return_value=["missing dataset"])
+    def test_check_instructs_one_time_apply(self, _problems):
+        with self.assertRaisesRegex(ops.OpsError, "backup-storage-apply once"):
+            ops.cmd_backup_storage_check(type("Args", (), {})())
+
+
 class RetireDiskTests(unittest.TestCase):
     def setUp(self):
         self.deployment = {"vm_name": "test_IP40", "storage_pool": "WD1TB"}

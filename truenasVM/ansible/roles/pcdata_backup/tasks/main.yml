@@ -1,0 +1,101 @@
+---
+- name: Validate backup configuration
+  ansible.builtin.assert:
+    that:
+      - pcdata_backup_source.startswith('/')
+      - pcdata_backup_mount.startswith('/mnt/')
+      - pcdata_backup_folder is match('^[A-Za-z][A-Za-z0-9_-]*$')
+      - pcdata_backup_compose_projects is sequence
+      - pcdata_backup_compose_projects is not string
+    fail_msg: Invalid pcData backup configuration
+
+- name: Create pcData source directory
+  ansible.builtin.file:
+    path: "{{ pcdata_backup_source }}"
+    state: directory
+    owner: fenkil
+    group: fenkil
+    mode: "0755"
+
+- name: Create backup automount parent
+  ansible.builtin.file:
+    path: "{{ pcdata_backup_mount | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Register TrueNAS backup automount
+  ansible.builtin.lineinfile:
+    path: /etc/auto.truenas
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    regexp: "^{{ pcdata_backup_mount | basename | regex_escape }}\\s"
+    line: >-
+      {{ pcdata_backup_mount | basename }}
+      -fstype=nfs4,rw,hard,timeo=600,retrans=2
+      {{ pcdata_backup_nfs_server }}:{{ pcdata_backup_nfs_export }}
+  notify: Restart autofs for pcData backup
+
+- name: Apply backup automount configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Trigger TrueNAS backup automount
+  ansible.builtin.command: "ls -ld {{ pcdata_backup_mount }}"
+  changed_when: false
+
+- name: Verify backup destination is NFS
+  ansible.builtin.command:
+    argv:
+      - findmnt
+      - --noheadings
+      - --types
+      - nfs,nfs4
+      - --target
+      - "{{ pcdata_backup_mount }}"
+  changed_when: false
+
+- name: Create VM-specific backup directory
+  ansible.builtin.file:
+    path: "{{ pcdata_backup_mount }}/{{ pcdata_backup_folder }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install pcData backup script
+  ansible.builtin.template:
+    src: backup-pcdata.sh.j2
+    dest: /usr/local/sbin/backup-pcdata
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install pcData backup service
+  ansible.builtin.template:
+    src: pcdata-backup.service.j2
+    dest: "/etc/systemd/system/{{ pcdata_backup_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for pcData backup
+
+- name: Install pcData backup timer
+  ansible.builtin.template:
+    src: pcdata-backup.timer.j2
+    dest: "/etc/systemd/system/{{ pcdata_backup_service_name }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for pcData backup
+
+- name: Apply systemd unit configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable nightly pcData backup
+  ansible.builtin.systemd_service:
+    name: "{{ pcdata_backup_service_name }}.timer"
+    enabled: true
+    state: started

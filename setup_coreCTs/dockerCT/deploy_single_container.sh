@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # Script to deploy a single Docker container using Ansible
-# Usage: ./deploy_single_container.sh <container_name>
+# Usage: ./deploy_single_container.sh <container_name> [--pull]
+# Options:
+#   --pull    Pull the latest version of the container image before deployment
 
 # Check if container name is provided
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <container_name>"
+    echo "Usage: $0 <container_name> [--pull]"
     echo ""
     echo "Available containers:"
     ls -1 containers/ 2>/dev/null || echo "No containers directory found"
@@ -13,6 +15,12 @@ if [ $# -eq 0 ]; then
 fi
 
 CONTAINER_NAME="$1"
+PULL_LATEST=""
+
+# Check for --pull flag
+if [ "$2" == "--pull" ]; then
+    PULL_LATEST="true"
+fi
 
 # Check if container directory exists
 if [ ! -d "containers/$CONTAINER_NAME" ]; then
@@ -28,10 +36,15 @@ read -s -p "Enter sudo password: " sudo_pass
 echo
 
 echo "Deploying container: $CONTAINER_NAME"
+[ -n "$PULL_LATEST" ] && echo "Pull latest image: Yes" || echo "Pull latest image: No"
 echo "=========================="
 
+# Build extra vars
+EXTRA_VARS="ansible_become_pass=$sudo_pass container_name=$CONTAINER_NAME"
+[ -n "$PULL_LATEST" ] && EXTRA_VARS="$EXTRA_VARS pull_latest=true"
+
 # Run the Ansible playbook with the same syntax as the main script
-ansible-playbook -i docker_inventory.yml docker_deploy_single_container.yml --extra-vars "ansible_become_pass=$sudo_pass container_name=$CONTAINER_NAME"
+ansible-playbook -i docker_inventory.yml docker_deploy_single_container.yml --extra-vars "$EXTRA_VARS"
 
 # Check the exit status
 if [ $? -eq 0 ]; then
