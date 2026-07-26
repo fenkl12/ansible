@@ -46,13 +46,29 @@
         owner: "{{ docker_main_user }}"
         group: "{{ docker_main_user }}"
         mode: "0750"
+    - name: Check for legacy PostgreSQL Compose definition
+      ansible.builtin.stat:
+        path: "{{ docker_main_legacy_database_directory }}/compose.yml"
+      register: docker_main_legacy_compose
+
+    - name: Remove legacy PostgreSQL container while preserving its data
+      community.docker.docker_compose_v2:
+        project_src: "{{ docker_main_legacy_database_directory }}"
+        files:
+          - compose.yml
+        state: absent
+        remove_volumes: false
+      when:
+        - docker_main_legacy_database_directory != docker_main_database_directory
+        - docker_main_legacy_compose.stat.exists
+
     - name: Create PostgreSQL data directory
       ansible.builtin.file:
         path: "{{ docker_main_database_directory }}/data"
         state: directory
-        owner: "{{ docker_main_user }}"
-        group: "{{ docker_main_user }}"
-        mode: "0750"
+        owner: "{{ docker_main_postgres_uid }}"
+        group: "{{ docker_main_postgres_gid }}"
+        mode: "0700"
 
     - name: Install Portainer Compose definition
       ansible.builtin.template:
@@ -63,13 +79,21 @@
         mode: "0640"
 
 
-    - name: Install PostgreSQL schema
+    - name: Install PostgreSQL initialization schema
       ansible.builtin.copy:
-        src: schema.sql
-        dest: "{{ docker_main_database_directory }}/schema.sql"
+        src: init.sql
+        dest: "{{ docker_main_database_directory }}/init.sql"
         owner: "{{ docker_main_user }}"
         group: "{{ docker_main_user }}"
-        mode: "0640"
+        mode: "0644"
+
+    - name: Install PostgreSQL environment
+      ansible.builtin.template:
+        src: pgvector.env.j2
+        dest: "{{ docker_main_database_directory }}/pgvector.env"
+        owner: "{{ docker_main_user }}"
+        group: "{{ docker_main_user }}"
+        mode: "0600"
 
     - name: Install PostgreSQL Compose definition
       ansible.builtin.template:
@@ -88,6 +112,25 @@
         pull: always
         remove_orphans: true
 
+    - name: Wait for PostgreSQL to become healthy
+      community.docker.docker_container_info:
+        name: pgvector-db
+      register: docker_main_postgres_container
+      until:
+        - docker_main_postgres_container.exists
+        - docker_main_postgres_container.container.State.Health.Status == "healthy"
+      retries: 12
+      delay: 5
+
+    - name: Ensure pgvector extension is installed
+      community.docker.docker_container_exec:
+        container: pgvector-db
+        command: >-
+          psql -U {{ docker_main_postgres_user }}
+          -d {{ docker_main_postgres_database }}
+          -v ON_ERROR_STOP=1
+          -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
     - name: Deploy Portainer
       community.docker.docker_compose_v2:
         project_src: "{{ docker_main_portainer_directory }}"
@@ -100,6 +143,7 @@
     - name: Configure pcData backups
       ansible.builtin.include_role:
         name: pcdata_backup
+      when: docker_main_backup_enabled | bool
       vars:
         pcdata_backup_source: "{{ docker_main_data_root }}"
         pcdata_backup_folder: "{{ inventory_hostname }}"

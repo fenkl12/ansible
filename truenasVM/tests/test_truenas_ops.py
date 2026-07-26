@@ -1,6 +1,9 @@
 import importlib.util
+import io
+import json
 import tempfile
 from pathlib import Path
+import subprocess
 import unittest
 from unittest.mock import call, patch
 
@@ -144,5 +147,145 @@ class RetireDiskTests(unittest.TestCase):
             ops.cmd_retire_disk(type("Args", (), {"vm": "test_IP40"})())
 
 
+
+class VerifyVmTests(unittest.TestCase):
+    def deployment(self):
+        return {
+            "vm_name": "test_IP40",
+            "storage_pool": "WD1TB",
+            "nic_attach": "enp3s0",
+            "provisioning_phase": "install",
+            "ubuntu_iso_path": "/mnt/WD1TB/ISOs/ubuntu.iso",
+        }
+
+    def vm(self):
+        return {
+            "id": 40,
+            "status": {"state": "STOPPED"},
+            "display_available": True,
+            "devices": [
+                {"dtype": "DISK", "attributes": {"path": "/dev/zvol/WD1TB/test-ip40-disk0"}},
+                {"dtype": "NIC", "attributes": {"nic_attach": "enp3s0"}},
+                {"dtype": "DISPLAY", "attributes": {}},
+                {"dtype": "CDROM", "attributes": {"path": "/mnt/WD1TB/ISOs/ubuntu.iso"}},
+                {"dtype": "CDROM", "attributes": {"path": "/mnt/WD1TB/ISOs/cloud-init-test_IP40.iso"}},
+            ],
+        }
+
+    @patch.object(ops, "file_stat", return_value={"type": "FILE", "size": 100})
+    @patch.object(ops, "find_vm")
+    @patch.object(ops, "deployment")
+    def test_verify_checks_exact_install_devices(self, deployment, find_vm, _file_stat):
+        deployment.return_value = self.deployment()
+        find_vm.return_value = self.vm()
+
+        ops.cmd_verify(type("Args", (), {"vm": "test_IP40"})())
+
+    @patch.object(ops, "file_stat", return_value={"type": "FILE", "size": 100})
+    @patch.object(ops, "find_vm")
+    @patch.object(ops, "deployment")
+    def test_verify_rejects_wrong_attached_disk(self, deployment, find_vm, _file_stat):
+        deployment.return_value = self.deployment()
+        vm = self.vm()
+        vm["devices"][0]["attributes"]["path"] = "/dev/zvol/WD1TB/wrong-disk"
+        find_vm.return_value = vm
+
+        with self.assertRaisesRegex(ops.OpsError, "expected disk is not attached"):
+            ops.cmd_verify(type("Args", (), {"vm": "test_IP40"})())
+
+
+class DetachInstallerTests(unittest.TestCase):
+    @patch.object(ops, "deployment", return_value={"vm_name": "test_IP40", "ubuntu_iso_path": "/mnt/WD1TB/ISOs/ubuntu.iso"})
+    @patch.object(ops, "find_vm")
+    @patch.object(ops, "api", return_value=True)
+    def test_detaches_only_matching_installer_iso(self, api, find_vm, _deployment):
+        installer = {"id": 8, "dtype": "CDROM", "attributes": {"path": "/mnt/WD1TB/ISOs/ubuntu.iso"}}
+        cloud_init = {"id": 9, "dtype": "CDROM", "attributes": {"path": "/mnt/WD1TB/ISOs/cloud-init-test.iso"}}
+        find_vm.side_effect = [
+            {"id": 40, "status": {"state": "STOPPED"}, "devices": [installer, cloud_init]},
+            {"id": 40, "status": {"state": "STOPPED"}, "devices": [cloud_init]},
+        ]
+
+        ops.cmd_detach_installer(type("Args", (), {"vm": "test_IP40"})())
+
+        api.assert_called_once_with(
+            "vm/device/id/8", {"force": False}, method="DELETE"
+        )
+
+    @patch.object(ops, "deployment", return_value={"vm_name": "test_IP40"})
+    @patch.object(ops, "find_vm", return_value={"id": 40, "status": {"state": "RUNNING"}})
+    @patch.object(ops, "api")
+    def test_refuses_to_detach_while_running(self, api, _find_vm, _deployment):
+        with self.assertRaisesRegex(ops.OpsError, "while VM 40 is running"):
+            ops.cmd_detach_installer(type("Args", (), {"vm": "test_IP40"})())
+
+        api.assert_not_called()
+
+
+class StatusTests(unittest.TestCase):
+    @patch.object(ops, "installed_guest_ready", return_value=False)
+    @patch.object(ops, "api", return_value=[{"id": "WD1TB/test-ip40-disk0"}])
+    @patch.object(
+        ops,
+        "find_vm",
+        return_value={
+            "id": 40,
+            "status": {"state": "STOPPED"},
+            "command_line_args": "-kernel k",
+            "display_available": True,
+            "devices": [],
+        },
+    )
+    @patch.object(
+        ops,
+        "deployment",
+        return_value={
+            "vm_name": "test_IP40",
+            "ip_address": "10.0.203.40",
+            "storage_pool": "WD1TB",
+            "provisioning_phase": "install",
+        },
+    )
+    def test_status_is_read_only_and_reports_provisioning_state(
+        self, _deployment, _find_vm, api, ready
+    ):
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            ops, "ROOT", Path(directory)
+        ), patch("sys.stdout", new_callable=io.StringIO) as stdout:
+            ops.cmd_status(type("Args", (), {"vm": "test_IP40"})())
+
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(report["phase"], "install")
+        self.assertTrue(report["zvol_present"])
+        self.assertEqual(report["status"]["state"], "STOPPED")
+        api.assert_called_once_with("pool/dataset")
+        ready.assert_called_once_with("10.0.203.40")
+
+
+class InstalledGuestTests(unittest.TestCase):
+    @patch.object(ops.subprocess, "run")
+    def test_ready_requires_marker_and_non_overlay_root(self, run):
+        run.return_value.returncode = 0
+
+        self.assertTrue(ops.installed_guest_ready("10.0.203.40"))
+
+        command = run.call_args.args[0]
+        self.assertIn("fenkil@10.0.203.40", command)
+        self.assertIn(ops.INSTALL_MARKER, command[-1])
+        self.assertIn("!= overlay", command[-1])
+        self.assertEqual(run.call_args.kwargs["timeout"], 10)
+
+    @patch.object(ops, "installed_guest_ready", return_value=True)
+    @patch.object(ops, "deployment", return_value={"vm_name": "test_IP40", "ip_address": "10.0.203.40"})
+    def test_wait_installed_returns_only_for_installed_guest(self, _deployment, ready):
+        args = type("Args", (), {"vm": "test_IP40", "timeout": 30})()
+
+        ops.cmd_wait_installed(args)
+
+        ready.assert_called_once_with("10.0.203.40")
+
+    @patch.object(ops.subprocess, "run", side_effect=subprocess.TimeoutExpired("ssh", 10))
+    def test_ssh_timeout_is_not_ready(self, _run):
+        self.assertFalse(ops.installed_guest_ready("10.0.203.40"))
 if __name__ == "__main__":
     unittest.main()

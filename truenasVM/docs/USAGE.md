@@ -1,6 +1,6 @@
 # Usage and operations
 
-Install OpenTofu 1.7+, Python 3.11+, Ansible, `make`, `ping`, and `ip`. The provider is pinned for the discovered TrueNAS SCALE 24.04.2.5 host.
+Install OpenTofu 1.7+, Python 3.11+, Ansible, `make`, `ping`, `ip`, `curl`, and `xorriso`. The provider is pinned for the discovered TrueNAS SCALE 24.04.2.5 host.
 
 Store `TRUENAS_API_KEY=...` in `.secrets/truenas.env` with mode `0600`. Set `VM_SSH_PUBLIC_KEY` if the guest key is not `~/.ssh/id_ed25519.pub` or `~/.ssh/id_rsa.pub`.
 
@@ -109,14 +109,17 @@ the operator to run the one-time apply command.
 ## Docker-main profile
 
 The included `databases` profile installs Docker Engine from Docker's official Ubuntu repository,
-installs Compose v2, and deploys only Portainer:
+installs Compose v2, and deploys Portainer plus PostgreSQL using the pgvector image:
 
 ```sh
 make setup-core VM=databases_IP40 PROFILE=databases
 ```
 
 Portainer is exposed on port `9000`; its persistent data and Compose definition live under
-`/home/fenkil/pcData/portainer`. Other legacy databases projects are not migrated.
+`/home/fenkil/pcData/portainer`. PostgreSQL uses `pgvector/pgvector:0.8.5-pg17` and is exposed on port `5432` bound to the VM's
+assigned address. Its persistent data, protected environment file, Compose definition, and initialization
+schema live under `/home/fenkil/pcData/pgvector`. The default database is `pi_memory`; `init.sql` enables
+the `vector` extension when a new data directory is initialized.
 
 The guest hostname defaults to the registered VM name converted to lowercase DNS form. For example,
 `databases_IP40` becomes `databases-ip40`. Override it per deployment by adding:
@@ -128,9 +131,19 @@ docker_main_hostname: databases
 to `deployments/<vm>/ansible-vars.yml`. Backup directories continue using the stable registered VM name,
 so changing the guest hostname does not split backup history.
 
-The profile mounts the shared export at `/mnt/tn_truenasVMData` and installs a persistent midnight systemd
-timer. A backup verifies the destination is NFS, stops Portainer, mirrors all of `/home/fenkil/pcData` with
-deletion propagation, and restarts Portainer even when rsync fails. Run one immediately with:
+Backups are disabled by default because a VM attached directly to the TrueNAS physical interface cannot
+reach an NFS service on that same host. After configuring a bridge or otherwise confirming guest access
+to the TrueNAS NFS address, opt in per deployment by adding:
+
+```yaml
+docker_main_backup_enabled: true
+```
+
+to `deployments/<vm>/ansible-vars.yml`, run `make backup-storage-check`, and rerun `make setup-core`.
+The enabled profile mounts the shared export at `/mnt/tn_truenasVMData` and installs a persistent midnight
+systemd timer. A backup verifies the destination is NFS, stops Portainer, mirrors all of
+`/home/fenkil/pcData` with deletion propagation, and restarts Portainer even when rsync fails. Run one
+immediately with:
 
 ```sh
 make backup-now VM=databases_IP40
@@ -165,7 +178,11 @@ This command refuses cleanup while either the VM or expected zvol exists. It nev
 
 ## Ubuntu installation
 
-The default ISO is `/mnt/WD1TB/ISOs/ubuntu-24.04-live-server-amd64.iso`. It must exist and support Subiquity autoinstall. OpenTofu creates a blank protected zvol and a cloud-init/autoinstall seed ISO. If an ordinary installer ignores the seed, complete that VM's first install through the TrueNAS display and rerun `make deploy`.
+The default ISO is `/mnt/WD1TB/ISOs/ubuntu-24.04-live-server-amd64.iso`. It remains unchanged. On first use, `make provision-base` downloads it, extracts its existing `vmlinuz` and `initrd`, and uploads those reusable boot files beside the ISO. OpenTofu creates the VM stopped; it does not control runtime power state. The provisioning orchestrator then direct-boots the installer with the `autoinstall` kernel argument while the provider-generated CIDATA ISO supplies each VM's answers.
+
+A stopped installer is never treated as proof of success. After Subiquity powers off, provisioning clears the temporary boot arguments, boots from the protected zvol, and requires SSH, a non-overlay root filesystem, and `/etc/truenas-vm-installed` before advancing the deployment from `install` to `bootstrap`. Re-running `make provision-base` resumes a verified checkpoint or safely retries an unverified installer.
+
+Run `make prepare-installer VM=<name>` to prepare or verify the shared boot files separately. This is optional because `make provision-base` invokes it automatically when needed. Use `make vm-status VM=<name>` for a read-only report of OpenTofu state ownership, VM state, boot arguments, devices, zvol presence, installer checkpoint, and installed-guest readiness.
 
 New VMs run these dotfiles playbooks from the cloned repository: Zsh, Neovim, Codex, and MyScripts. They run in order from `ansible_localPc/`; absolute paths and paths containing `..` are rejected.
 

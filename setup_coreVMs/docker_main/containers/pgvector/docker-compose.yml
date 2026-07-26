@@ -1,20 +1,21 @@
----
 services:
   pgvector:
-    image: {{ docker_main_postgres_image }}
+    image: pgvector/pgvector:0.8.5-pg17
     container_name: pgvector-db
     restart: unless-stopped
     ports:
-      - "{{ docker_main_postgres_bind_address }}:5432:5432"
+      - "10.0.10.30:5432:5432"
     env_file:
       - pgvector.env
     volumes:
-      - {{ docker_main_database_directory }}/data:/var/lib/postgresql/data
+      - /home/fenkil/pcData/pgvector/data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test:
-        - CMD-SHELL
-        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

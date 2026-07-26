@@ -18,7 +18,7 @@ resource "truenas_dataset" "vm_disk" {
 resource "truenas_vm" "this" {
   name                  = var.vm_name
   description           = "Managed by OpenTofu from truenasVM"
-  vcpus                 = var.vcpus
+  vcpus                 = 1
   cores                 = var.vcpus
   threads               = 1
   memory                = var.memory_mb
@@ -26,7 +26,6 @@ resource "truenas_vm" "this" {
   bootloader            = "UEFI"
   time                  = "UTC"
   autostart             = true
-  desired_state         = "RUNNING"
   ensure_display_device = false
 
   cloud_init = {
@@ -52,10 +51,10 @@ resource "truenas_vm" "this" {
     order = 1001
   }]
 
-  cdrom_devices = [{
+  cdrom_devices = var.provisioning_phase == "install" ? [{
     path  = var.ubuntu_iso_path
     order = 1002
-  }]
+  }] : null
 
   nic_devices = [{
     type       = "VIRTIO"
@@ -69,4 +68,3 @@ resource "truenas_vm" "this" {
 
   depends_on = [truenas_dataset.vm_disk]
 }
-

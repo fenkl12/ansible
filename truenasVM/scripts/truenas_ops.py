@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import subprocess
 import ssl
 import sys
 import time
@@ -23,6 +24,8 @@ BACKUP_PARENT_DATASET = "tank/backups/truenasVM"
 BACKUP_DATASET = f"{BACKUP_PARENT_DATASET}/dataOnly"
 BACKUP_EXPORT_PATH = f"/mnt/{BACKUP_DATASET}"
 BACKUP_NETWORK = "10.0.0.0/16"
+SSH_USER = "fenkil"
+INSTALL_MARKER = "/etc/truenas-vm-installed"
 
 
 class OpsError(RuntimeError):
@@ -54,7 +57,11 @@ def api(endpoint: str, payload: Any | None = None, method: str | None = None) ->
     try:
         with urlopen(request, timeout=20, context=context) as response:
             return json.load(response)
-    except (HTTPError, URLError, TimeoutError) as exc:
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace").strip()
+        detail = f"; {body}" if body else ""
+        raise OpsError(f"TrueNAS API request failed: {exc}{detail}") from exc
+    except (URLError, TimeoutError) as exc:
         raise OpsError(f"TrueNAS API request failed: {exc}") from exc
 
 
@@ -167,15 +174,136 @@ def cmd_verify(args: argparse.Namespace) -> None:
     vm = find_vm(item["vm_name"])
     if not vm:
         raise OpsError("VM was not found after apply")
-    types = {device.get("dtype") for device in vm.get("devices", [])}
+
+    devices = vm.get("devices", [])
+    types = {device.get("dtype") for device in devices}
+    problems = []
     missing = {"DISK", "NIC", "CDROM", "DISPLAY"} - types
-    if missing or not vm.get("display_available"):
-        raise OpsError(f"VM device verification failed: missing={sorted(missing)}, display={vm.get('display_available')}")
+    if missing:
+        problems.append(f"missing device types={sorted(missing)}")
+    if not vm.get("display_available"):
+        problems.append("display unavailable")
+
+    expected_disk = f"/dev/zvol/{zvol_name(item)}"
+    disk_paths = {
+        (device.get("attributes") or {}).get("path")
+        for device in devices
+        if device.get("dtype") == "DISK"
+    }
+    if expected_disk not in disk_paths:
+        problems.append(f"expected disk is not attached: {expected_disk}")
+
+    nic_targets = {
+        (device.get("attributes") or {}).get("nic_attach")
+        for device in devices
+        if device.get("dtype") == "NIC"
+    }
+    if item.get("nic_attach", "enp3s0") not in nic_targets:
+        problems.append(f"expected NIC target is not attached: {item.get('nic_attach', 'enp3s0')}")
+
     seed_path = f"/mnt/{item.get('storage_pool', 'WD1TB')}/ISOs/cloud-init-{item['vm_name']}.iso"
+    cdrom_paths = {
+        (device.get("attributes") or {}).get("path")
+        for device in devices
+        if device.get("dtype") == "CDROM"
+    }
+    if seed_path not in cdrom_paths:
+        problems.append(f"cloud-init ISO is not attached: {seed_path}")
+    installer_path = item.get(
+        "ubuntu_iso_path",
+        "/mnt/WD1TB/ISOs/ubuntu-24.04-live-server-amd64.iso",
+    )
+    phase = item.get("provisioning_phase", "install")
+    if phase == "install" and installer_path not in cdrom_paths:
+        problems.append(f"installer ISO is not attached: {installer_path}")
+    if phase == "bootstrap" and installer_path in cdrom_paths:
+        problems.append(f"installer ISO is still attached: {installer_path}")
+
     seed = file_stat(seed_path)
     if seed.get("type") != "FILE" or int(seed.get("size", 0)) == 0:
-        raise OpsError(f"Cloud-init ISO is missing or empty: {seed_path}")
+        problems.append(f"cloud-init ISO is missing or empty: {seed_path}")
+    if problems:
+        raise OpsError("VM verification failed: " + "; ".join(problems))
     print(f"VM verification OK: id={vm['id']} state={vm['status']['state']} console=available")
+
+def cmd_detach_installer(args: argparse.Namespace) -> None:
+    item = deployment(args.vm)
+    vm_name = item["vm_name"]
+    vm = find_vm(vm_name)
+    if not vm:
+        raise OpsError(f"VM was not found: {vm_name}")
+    vm_id = vm["id"]
+    if vm.get("status", {}).get("state") != "STOPPED":
+        raise OpsError(f"Refusing to detach installer ISO while VM {vm_id} is running")
+
+    iso_path = item.get(
+        "ubuntu_iso_path",
+        "/mnt/WD1TB/ISOs/ubuntu-24.04-live-server-amd64.iso",
+    )
+    devices = [
+        device
+        for device in vm.get("devices", [])
+        if device.get("dtype") == "CDROM"
+        and device.get("attributes", {}).get("path") == iso_path
+    ]
+    for device in devices:
+        device_id = device["id"]
+        deleted = api(
+            f"vm/device/id/{device_id}",
+            {"force": False},
+            method="DELETE",
+        )
+        if deleted is not True:
+            raise OpsError(
+                f"TrueNAS did not confirm detachment of installer ISO device {device_id}"
+            )
+
+    current = find_vm(vm_name)
+    if any(
+        device.get("dtype") == "CDROM"
+        and device.get("attributes", {}).get("path") == iso_path
+        for device in current.get("devices", [])
+    ):
+        raise OpsError(f"Installer ISO is still attached: {iso_path}")
+    print(f"Installer ISO detached: {iso_path}")
+
+
+def cmd_status(args: argparse.Namespace) -> None:
+    item = deployment(args.vm)
+    vm = find_vm(item["vm_name"])
+    expected_dataset = zvol_name(item)
+    datasets = {entry.get("id") for entry in api("pool/dataset")}
+    completion = ROOT / "build" / args.vm / "installer-complete.json"
+    state_file = ROOT / "deployments" / args.vm / "terraform.tfstate"
+    devices = []
+    if vm:
+        devices = [
+            {
+                "id": device.get("id"),
+                "type": device.get("dtype"),
+                "order": device.get("order"),
+                "path": (device.get("attributes") or {}).get("path"),
+            }
+            for device in vm.get("devices", [])
+        ]
+    report = {
+        "deployment": args.vm,
+        "vm_name": item["vm_name"],
+        "phase": item.get("provisioning_phase", "install"),
+        "ip_address": item["ip_address"],
+        "terraform_state": state_file.is_file(),
+        "zvol": expected_dataset,
+        "zvol_present": expected_dataset in datasets,
+        "installer_checkpoint": completion.is_file(),
+        "vm_present": vm is not None,
+        "vm_id": vm.get("id") if vm else None,
+        "status": vm.get("status") if vm else None,
+        "command_line_args": vm.get("command_line_args") if vm else None,
+        "display_available": vm.get("display_available") if vm else False,
+        "devices": devices,
+        "installed_guest_ready": installed_guest_ready(item["ip_address"]),
+    }
+    print(json.dumps(report, indent=2, sort_keys=True))
 
 
 def cmd_wait(args: argparse.Namespace) -> None:
@@ -194,15 +322,54 @@ def cmd_wait(args: argparse.Namespace) -> None:
     raise OpsError(f"SSH timeout at {address}; {detail}. Open the VM display in TrueNAS.")
 
 
+def installed_guest_ready(address: str) -> bool:
+    command = [
+        "ssh",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=5",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        f"{SSH_USER}@{address}",
+        f'test -f {INSTALL_MARKER} && test "$(findmnt -n -o FSTYPE /)" != overlay',
+    ]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def cmd_wait_installed(args: argparse.Namespace) -> None:
+    item = deployment(args.vm)
+    address = item["ip_address"]
+    deadline = time.monotonic() + args.timeout
+    while time.monotonic() < deadline:
+        if installed_guest_ready(address):
+            print(f"Installed guest is ready at {address}")
+            return
+        time.sleep(5)
+    vm = find_vm(item["vm_name"])
+    detail = f"status={vm.get('status')} display={vm.get('display_available')}" if vm else "VM not found"
+    raise OpsError(f"Installed guest timeout at {address}; {detail}. Open the VM display in TrueNAS.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(required=True)
     sub.add_parser("secret").set_defaults(func=cmd_secret)
     sub.add_parser("backup-storage-check").set_defaults(func=cmd_backup_storage_check)
-    for name, func in (("preflight", cmd_preflight), ("verify", cmd_verify), ("wait", cmd_wait), ("retire-disk", cmd_retire_disk)):
+    for name, func in (
+        ("preflight", cmd_preflight),
+        ("verify", cmd_verify),
+        ("detach-installer", cmd_detach_installer),
+        ("status", cmd_status),
+        ("wait", cmd_wait),
+        ("wait-installed", cmd_wait_installed),
+        ("retire-disk", cmd_retire_disk),
+    ):
         command = sub.add_parser(name)
         command.add_argument("--vm", required=True)
-        if name == "wait":
+        if name in {"wait", "wait-installed"}:
             command.add_argument("--timeout", type=int, default=1800)
         command.set_defaults(func=func)
     try:

@@ -11,7 +11,7 @@ TFVARS = ../$(DEPLOYMENT_DIR)/deployment.auto.tfvars.json
 STATE = ../$(DEPLOYMENT_DIR)/terraform.tfstate
 BACKUP_TOFU_DIR = opentofu/backup-storage
 
-.PHONY: help dependencies new-vm new-core-profile change-core-profile list suggest init plan apply backup-storage-init backup-storage-plan backup-storage-apply backup-storage-check core-storage-preflight inventory configure-base configure provision-base deploy setup-core backup-now preview reconcile check destroy destroy-disk remove-deployment vm-password require-vm require-profile
+.PHONY: help dependencies new-vm new-core-profile change-core-profile list suggest init plan apply apply-auto prepare-installer vm-status backup-storage-init backup-storage-plan backup-storage-apply backup-storage-check core-storage-preflight inventory configure-base configure provision-base deploy setup-core backup-now preview reconcile check destroy destroy-disk remove-deployment vm-password require-vm require-profile
 
 help:
 	@echo "make dependencies        Install required Ansible collections"
@@ -20,6 +20,8 @@ help:
 	@echo "make suggest NAME=web    Show available name/IP suggestions"
 	@echo "make list                List registered deployments"
 	@echo "make provision-base VM=<name>  Provision and configure the reusable base"
+	@echo "make prepare-installer VM=<name>  Prepare reusable stock-ISO boot files"
+	@echo "make vm-status VM=<name> Read-only provisioning and VM diagnostics"
 	@echo "make setup-core VM=<name> [PROFILE=<name>]  Apply the assigned core profile"
 	@echo "make preview VM=<name>   Preview infrastructure, base, and core drift"
 	@echo "make reconcile VM=<name> Reapply base and assigned core desired state"
@@ -67,10 +69,19 @@ plan: require-vm preflight init
 	@TF_VAR_truenas_api_key="$$(python3 scripts/truenas_ops.py secret)" TF_VAR_display_password="$$(python3 scripts/console_password.py $(VM))" TF_VAR_login_password_hash="$$(python3 scripts/login_password.py $(VM) --hash)" $(TOFU) -chdir=opentofu plan -state="$(STATE)" -var-file="$(TFVARS)"
 
 apply: require-vm preflight init
-	@TF_VAR_truenas_api_key="$$(python3 scripts/truenas_ops.py secret)" TF_VAR_display_password="$$(python3 scripts/console_password.py $(VM))" TF_VAR_login_password_hash="$$(python3 scripts/login_password.py $(VM) --hash)" $(TOFU) -chdir=opentofu apply -state="$(STATE)" -var-file="$(TFVARS)"
+	@TF_VAR_truenas_api_key="$$(python3 scripts/truenas_ops.py secret)" TF_VAR_display_password="$$(python3 scripts/console_password.py $(VM))" TF_VAR_login_password_hash="$$(python3 scripts/login_password.py $(VM) --hash)" $(TOFU) -chdir=opentofu apply $(TOFU_APPLY_ARGS) -state="$(STATE)" -var-file="$(TFVARS)"
 	@python3 scripts/console_password.py "$(VM)" >/dev/null
 	@python3 scripts/ensure_console.py "$(VM)"
 	@python3 scripts/truenas_ops.py verify --vm "$(VM)"
+
+apply-auto: TOFU_APPLY_ARGS = -auto-approve
+apply-auto: apply
+
+prepare-installer: require-vm preflight
+	@python3 scripts/installer_boot.py prepare --vm "$(VM)"
+
+vm-status: require-vm
+	@python3 scripts/truenas_ops.py status --vm "$(VM)"
 
 backup-storage-init:
 	@command -v $(TOFU) >/dev/null || { echo "OpenTofu is required: https://opentofu.org/docs/intro/install/"; exit 1; }
@@ -104,15 +115,22 @@ configure-base: require-vm inventory
 
 configure: configure-base
 
-provision-base: apply
-	@python3 scripts/truenas_ops.py wait --vm "$(VM)"
-	@$(MAKE) --no-print-directory inventory VM="$(VM)"
-	@if python3 -c 'import json; raise SystemExit(0 if json.load(open("deployments/$(VM)/deployment.auto.tfvars.json")).get("provisioning_phase", "install") == "install" else 1)'; then \
-		python3 scripts/set_phase.py "$(VM)" bootstrap; \
-		$(MAKE) --no-print-directory apply VM="$(VM)"; \
-		python3 scripts/restart_vm.py "$(VM)"; \
-		python3 scripts/truenas_ops.py wait --vm "$(VM)"; \
+provision-base: require-vm preflight init
+	@set -e; if python3 -c 'import json; raise SystemExit(0 if json.load(open("deployments/$(VM)/deployment.auto.tfvars.json")).get("provisioning_phase", "install") == "install" else 1)'; then \
+		python3 scripts/installer_boot.py prepare --vm "$(VM)"; \
 	fi
+	@$(MAKE) --no-print-directory apply-auto VM="$(VM)"
+	@set -e; if python3 -c 'import json; raise SystemExit(0 if json.load(open("deployments/$(VM)/deployment.auto.tfvars.json")).get("provisioning_phase", "install") == "install" else 1)'; then \
+		python3 scripts/installer_boot.py install --vm "$(VM)"; \
+		python3 scripts/installer_boot.py stop --vm "$(VM)"; \
+		python3 scripts/truenas_ops.py detach-installer --vm "$(VM)"; \
+		python3 scripts/set_phase.py "$(VM)" bootstrap; \
+		$(MAKE) --no-print-directory apply-auto VM="$(VM)"; \
+	fi
+	@python3 scripts/restart_vm.py --start "$(VM)"
+	@python3 scripts/truenas_ops.py wait --vm "$(VM)"
+	@python3 scripts/truenas_ops.py wait-installed --vm "$(VM)"
+	@$(MAKE) --no-print-directory inventory VM="$(VM)"
 	@$(MAKE) --no-print-directory configure-base VM="$(VM)"
 
 deploy: provision-base
@@ -161,6 +179,8 @@ check:
 	@python3 -m unittest discover -s tests -v
 	@python3 -m py_compile scripts/vm_factory.py
 	@python3 -m py_compile scripts/core_profiles.py
+	@python3 -m py_compile scripts/restart_vm.py
+	@python3 -m py_compile scripts/installer_boot.py
 	@python3 -m py_compile ansible/filter_plugins/truenas_names.py
 	@$(ANSIBLE_PLAYBOOK) --syntax-check -i ansible/inventory.test.yml ansible/site.yml
 	@$(ANSIBLE_PLAYBOOK) --syntax-check -i ansible/inventory.test.yml ansible/backup-now.yml

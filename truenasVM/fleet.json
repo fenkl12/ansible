@@ -1,9 +1,14 @@
 {
   "deployments": {
-    "databases_IP70": {
+    "databases_IP80": {
       "base_name": "databases",
       "core_profile": "databases",
-      "ip_address": "10.0.203.70"
+      "ip_address": "10.0.203.80"
+    },
+    "databases_IP90": {
+      "base_name": "databases",
+      "core_profile": "databases",
+      "ip_address": "10.0.203.90"
     }
   }
 }

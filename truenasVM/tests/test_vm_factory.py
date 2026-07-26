@@ -1,5 +1,6 @@
 import argparse
 import importlib.util
+import io
 import tempfile
 from pathlib import Path
 import unittest
@@ -40,6 +41,28 @@ class FactoryTests(unittest.TestCase):
                 self.assertIn(f"  - {factory.json.dumps(playbook)}\n", config)
             registry = factory.json.loads(fleet_path.read_text(encoding="utf-8"))
             self.assertIsNone(registry["deployments"]["test_IP40"]["core_profile"])
+            tfvars = factory.json.loads(
+                (deployments / "test_IP40" / "deployment.auto.tfvars.json").read_text()
+            )
+            self.assertEqual(tfvars["provisioning_phase"], "install")
+
+    def test_list_flags_missing_deployment_config(self):
+        fleet = {
+            "deployments": {
+                "missing_IP40": {
+                    "ip_address": "10.0.203.40",
+                    "core_profile": None,
+                }
+            }
+        }
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            factory, "DEPLOYMENTS", Path(directory) / "deployments"
+        ), patch.object(factory, "load_fleet", return_value=fleet), patch(
+            "sys.stdout", new_callable=io.StringIO
+        ) as stdout:
+            factory.cmd_list(argparse.Namespace())
+
+        self.assertIn("missing-config", stdout.getvalue())
 
     def test_remove_deployment_refuses_existing_vm(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,6 +1,7 @@
 #cloud-config
 autoinstall:
   version: 1
+  shutdown: poweroff
   network:
     version: 2
     ethernets:
@@ -23,6 +24,8 @@ autoinstall:
     allow-pw: true
     authorized-keys:
       - ${ssh_public_key}
+  late-commands:
+    - curtin in-target --target=/target -- touch /etc/truenas-vm-installed
   user-data:
     disable_root: true
     ssh_pwauth: true
@@ -47,4 +50,3 @@ autoinstall:
     runcmd:
       - [systemctl, enable, --now, qemu-guest-agent]
       - [systemctl, restart, ssh]
-

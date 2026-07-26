@@ -191,6 +191,7 @@ def register(base_name: str, final_name: str, address: str) -> None:
         "disk_size_gb": 40,
         "storage_pool": "WD1TB",
         "nic_attach": "enp3s0",
+        "provisioning_phase": "install",
     }
     ansible_vars = (
         "---\n"
@@ -252,7 +253,11 @@ def cmd_list(_: argparse.Namespace) -> None:
         return
     for name, item in sorted(deployments.items()):
         marker = ROOT / "build" / name / "base-configured.json"
-        base_status = "base-ready" if marker.is_file() else "base-pending"
+        config = deployment_path(name) / "deployment.auto.tfvars.json"
+        if not config.is_file():
+            base_status = "missing-config"
+        else:
+            base_status = "base-ready" if marker.is_file() else "base-pending"
         profile = item.get("core_profile") or "unassigned"
         print(f"{name:<36} {item['ip_address']:<16} {base_status:<13} {profile}")
 

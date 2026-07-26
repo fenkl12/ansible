@@ -14,7 +14,7 @@ make new-vm
 make provision-base VM=<name>
 make new-core-profile PROFILE=<profile>
 make setup-core VM=<name> PROFILE=<profile>
-```
+```ls
 
 After setup, make all guest changes in Ansible and apply them with `make reconcile VM=<name>`. Use
 `make preview VM=<name>` first to view both the OpenTofu plan and Ansible check/diff output. Infrastructure

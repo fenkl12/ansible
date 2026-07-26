@@ -33,8 +33,14 @@ variable "ssh_public_key" {
   sensitive = true
 }
 variable "vcpus" {
-  type    = number
-  default = 2
+  type        = number
+  description = "Total guest CPU cores, configured as one socket."
+  default     = 2
+
+  validation {
+    condition     = var.vcpus >= 1 && var.vcpus <= 16 && floor(var.vcpus) == var.vcpus
+    error_message = "vcpus must be a whole number between 1 and 16."
+  }
 }
 variable "memory_mb" {
   type    = number
@@ -57,4 +63,3 @@ variable "ubuntu_iso_path" {
   description = "Existing Ubuntu autoinstall-capable ISO path on TrueNAS."
   default     = "/mnt/WD1TB/ISOs/ubuntu-24.04-live-server-amd64.iso"
 }
-

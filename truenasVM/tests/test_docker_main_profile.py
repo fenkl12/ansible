@@ -32,6 +32,39 @@ class DockerMainProfileTests(unittest.TestCase):
         self.assertIn("9000:9000", portainer["ports"])
         self.assertIn("/home/fenkil/pcData/portainer/data:/data", portainer["volumes"])
 
+    def test_pgvector_compose_matches_database_contract(self):
+        template = (
+            ROOT / "ansible/core_profiles/databases/templates/postgres-compose.yml.j2"
+        ).read_text(encoding="utf-8")
+        variables = yaml.safe_load(
+            (ROOT / "ansible/core_profiles/databases/vars.yml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertIn("pgvector:", template)
+        self.assertIn("restart: unless-stopped", template)
+        self.assertIn("pgvector.env", template)
+        self.assertIn("{{ docker_main_postgres_bind_address }}:5432:5432", template)
+        self.assertIn("./init.sql:/docker-entrypoint-initdb.d/init.sql:ro", template)
+        self.assertIn("pg_isready", template)
+        self.assertEqual(variables["docker_main_postgres_image"], "pgvector/pgvector:0.8.5-pg17")
+        self.assertEqual(variables["docker_main_database_directory"], "{{ docker_main_data_root }}/pgvector")
+        self.assertEqual(variables["docker_main_postgres_database"], "pi_memory")
+        self.assertEqual(variables["docker_main_postgres_user"], "fenkil")
+        self.assertEqual(variables["docker_main_postgres_password"], "fenkil")
+        self.assertEqual(variables["docker_main_postgres_uid"], 999)
+        self.assertEqual(variables["docker_main_postgres_gid"], 999)
+        init_sql = (ROOT / "ansible/core_profiles/databases/files/init.sql").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("CREATE EXTENSION IF NOT EXISTS vector;", init_sql)
+        playbook = (ROOT / "ansible/core_profiles/databases/site.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("mode: \"0644\"", playbook)
+        self.assertIn("community.docker.docker_container_exec:", playbook)
+        self.assertIn("CREATE EXTENSION IF NOT EXISTS vector;", playbook)
+
     def test_backup_script_guards_nfs_and_restarts_containers(self):
         template = (
             ROOT / "ansible/roles/pcdata_backup/templates/backup-pcdata.sh.j2"
@@ -58,7 +91,7 @@ class DockerMainProfileTests(unittest.TestCase):
         self.assertIn('networks     = var.backup_networks', main)
         self.assertIn('lifetime_value = 30', main)
         self.assertIn('lifetime_unit  = "DAY"', main)
-        self.assertIn('hour   = "2"', main)
+        self.assertIn('schedule       = "0 2 * * *"', main)
 
     def test_core_setup_checks_storage_before_assignment_and_never_applies_it(self):
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
@@ -76,10 +109,20 @@ class DockerMainProfileTests(unittest.TestCase):
         self.assertIn("backup-storage-check", change)
         self.assertNotIn("backup-storage-apply", change)
 
-    def test_docker_main_declares_backup_storage_requirement(self):
+    def test_databases_backup_is_explicitly_opt_in(self):
         metadata_path = ROOT / "ansible/core_profiles/databases/profile.json"
         metadata = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
-        self.assertTrue(metadata["requires_backup_storage"])
+        self.assertFalse(metadata["requires_backup_storage"])
+        variables = yaml.safe_load(
+            (ROOT / "ansible/core_profiles/databases/vars.yml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertFalse(variables["docker_main_backup_enabled"])
+        playbook = (ROOT / "ansible/core_profiles/databases/site.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("when: docker_main_backup_enabled | bool", playbook)
 
 
 if __name__ == "__main__":

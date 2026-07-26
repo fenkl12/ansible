@@ -3,10 +3,16 @@
 # Override docker_main_hostname in deployments/<vm>/ansible-vars.yml when needed.
 docker_main_hostname: ""
 docker_main_user: fenkil
+# Enable only after the VM can reach the TrueNAS NFS address (normally via a bridge).
+docker_main_backup_enabled: false
 docker_main_data_root: /home/fenkil/pcData
 docker_main_portainer_directory: "{{ docker_main_data_root }}/portainer"
-docker_main_database_directory: "{{ docker_main_data_root }}/postgres"
-docker_main_postgres_image: pgvector/pgvector:pg16
-docker_main_postgres_database: app
-docker_main_postgres_user: app
-docker_main_postgres_password: change-me
+docker_main_database_directory: "{{ docker_main_data_root }}/pgvector"
+docker_main_postgres_uid: 999
+docker_main_postgres_gid: 999
+docker_main_legacy_database_directory: "{{ docker_main_data_root }}/postgres"
+docker_main_postgres_image: pgvector/pgvector:0.8.5-pg17
+docker_main_postgres_bind_address: "{{ ansible_host }}"
+docker_main_postgres_database: pi_memory
+docker_main_postgres_user: fenkil
+docker_main_postgres_password: fenkil
