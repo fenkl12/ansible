@@ -1,0 +1,13 @@
+services:
+  filebrowserquantum:
+    image: gtstef/filebrowser:stable
+    container_name: filebrowserquantum
+    restart: unless-stopped
+    environment:
+      FILEBROWSER_CONFIG: /config.yaml
+    ports:
+      - "8790:80"
+    volumes:
+      - /home/fenkil/pcData/filebrowserquantum/config.yaml:/config.yaml:ro
+      - /home/fenkil/pcData/filebrowserquantum/files:/folder:rw
+      - /home/fenkil/pcData/filebrowserquantum/data:/home/filebrowser/data

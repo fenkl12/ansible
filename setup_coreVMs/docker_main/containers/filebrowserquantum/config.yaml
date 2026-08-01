@@ -1,0 +1,10 @@
+server:
+  cacheDir: /home/filebrowser/data/tmp
+  sources:
+    - path: /folder
+      name: files
+      config:
+        defaultEnabled: true
+        defaultUserScope: /
+        denyByDefault: false
+        readOnly: false
