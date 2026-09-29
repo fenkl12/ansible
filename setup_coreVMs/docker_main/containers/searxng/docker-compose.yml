@@ -25,7 +25,7 @@ services:
       - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
 
     volumes:
-      - /home/fenkil/pcData/arr-stack/searxng/gluetun:/gluetun
+      - /home/fenkil/pcData/searxng/gluetun:/gluetun
 
   searxng:
     image: searxng/searxng:latest
@@ -43,5 +43,5 @@ services:
       - TZ=America/Toronto
 
     volumes:
-      - /home/fenkil/pcData/arr-stack/searxng/config:/etc/searxng
-      - /home/fenkil/pcData/arr-stack/searxng/data:/var/lib/searxng
+      - /home/fenkil/pcData/searxng/config:/etc/searxng
+      - /home/fenkil/pcData/searxng/data:/var/lib/searxng

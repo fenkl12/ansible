@@ -18,6 +18,7 @@ services:
       - 9696:9696 # Prowlarr
       - 6969:6969 # Whisparr
       - 7878:7878 # Radarr
+      - 8191:8191 # FlareSolverr
     volumes:
       - /home/fenkil/pcData/arr-stack:/gluetun
     environment:
@@ -25,7 +26,7 @@ services:
       - VPN_TYPE=openvpn
       # OpenVPN:
       - OPENVPN_USER=fWFpmfBnoXrFQcGemFWWjHrq
-      - OPENVPN_PASSWORD=c3AnVBB3qCwn3RMy7qUY32k9
+      - OPENVPN_PASSWORD=c3AnVBB3qCwn3RMy7qUY32k9 
       # Wireguard:
       #- WIREGUARD_PRIVATE_KEY=<YOUR_PRIVATE_KEY> # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/nordvpn.md#obtain-your-wireguard-private-key
       #- WIREGUARD_ADDRESSES=10.5.0.2/32
@@ -89,6 +90,19 @@ services:
       - TZ=America/Toronto
     volumes:
       - /home/fenkil/pcData/arr-stack/prowlarr/data:/config
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    network_mode: "service:gluetun"
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=America/Toronto
+    depends_on:
+      - gluetun
     restart: unless-stopped
 
   # whisparr:

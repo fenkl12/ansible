@@ -1,4 +1,9 @@
 {
   "deployments": {
+    "trial_IP40": {
+      "base_name": "trial",
+      "core_profile": "databases",
+      "ip_address": "10.0.203.40"
+    }
   }
 }

@@ -121,6 +121,10 @@ assigned address. Its persistent data, protected environment file, Compose defin
 schema live under `/home/fenkil/pcData/pgvector`. The default database is `pi_memory`; `init.sql` enables
 the `vector` extension when a new data directory is initialized.
 
+Open `http://<vm-ip>:9000` to create Portainer's admin account after the first deployment. Portainer locks
+the initial setup screen after its setup window expires; if that happens, run
+`ssh fenkil@<vm-ip> 'docker restart portainer'` and complete setup after the restart.
+
 The guest hostname defaults to the registered VM name converted to lowercase DNS form. For example,
 `databases_IP40` becomes `databases-ip40`. Override it per deployment by adding:
 

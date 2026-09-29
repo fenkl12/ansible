@@ -116,10 +116,13 @@ configure-base: require-vm inventory
 configure: configure-base
 
 provision-base: require-vm preflight init
+	@echo "[provision] Verify installer boot artifacts"
 	@set -e; if python3 -c 'import json; raise SystemExit(0 if json.load(open("deployments/$(VM)/deployment.auto.tfvars.json")).get("provisioning_phase", "install") == "install" else 1)'; then \
 		python3 scripts/installer_boot.py prepare --vm "$(VM)"; \
 	fi
+	@echo "[provision] Apply initial TrueNAS VM and disk definition"
 	@$(MAKE) --no-print-directory apply-auto VM="$(VM)"
+	@echo "[provision] Install Ubuntu and transition to bootstrap phase if needed"
 	@set -e; if python3 -c 'import json; raise SystemExit(0 if json.load(open("deployments/$(VM)/deployment.auto.tfvars.json")).get("provisioning_phase", "install") == "install" else 1)'; then \
 		python3 scripts/installer_boot.py install --vm "$(VM)"; \
 		python3 scripts/installer_boot.py stop --vm "$(VM)"; \
@@ -127,9 +130,11 @@ provision-base: require-vm preflight init
 		python3 scripts/set_phase.py "$(VM)" bootstrap; \
 		$(MAKE) --no-print-directory apply-auto VM="$(VM)"; \
 	fi
+	@echo "[provision] Start installed guest and verify SSH readiness"
 	@python3 scripts/restart_vm.py --start "$(VM)"
 	@python3 scripts/truenas_ops.py wait --vm "$(VM)"
 	@python3 scripts/truenas_ops.py wait-installed --vm "$(VM)"
+	@echo "[provision] Configure Ubuntu base with Ansible"
 	@$(MAKE) --no-print-directory inventory VM="$(VM)"
 	@$(MAKE) --no-print-directory configure-base VM="$(VM)"
 

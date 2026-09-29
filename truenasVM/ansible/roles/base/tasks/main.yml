@@ -1,4 +1,10 @@
 ---
+- name: Prefer IPv4 for package and provisioning downloads
+  ansible.builtin.lineinfile:
+    path: /etc/gai.conf
+    regexp: '^#?\s*precedence\s+::ffff:0:0/96\s+'
+    line: 'precedence ::ffff:0:0/96  100'
+    state: present
 - name: Update APT cache
   ansible.builtin.apt:
     update_cache: true
@@ -34,4 +40,3 @@
     group: root
     mode: "0600"
   notify: Restart SSH
-

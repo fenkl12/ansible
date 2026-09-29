@@ -1,0 +1,10 @@
+---
+dotfiles_repo: 'http://10.0.10.20:7000/fenkil/dotfiles.git'
+dotfiles_nested_playbooks:
+  - "ansible_localPc/stow_zshrc.yml"
+  - "ansible_localPc/stow_nvim.yml"
+  - "ansible_localPc/stow_codex.yml"
+  - "ansible_localPc/stow_myScripts.yml"
+nfs_server: '10.0.203.171'
+nfs_media_export: '/mnt/tank/media'
+nfs_media_mount: '/mnt/tn_media'

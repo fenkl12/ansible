@@ -263,6 +263,19 @@ class StatusTests(unittest.TestCase):
 
 
 class InstalledGuestTests(unittest.TestCase):
+    @patch.object(ops, "find_vm", return_value={"status": {"state": "RUNNING"}, "display_available": True})
+    @patch.object(ops.time, "sleep")
+    @patch.object(ops.time, "monotonic", side_effect=[0, 0, 2])
+    @patch.object(ops.socket, "create_connection", side_effect=OSError("No route to host"))
+    @patch.object(ops, "deployment", return_value={"vm_name": "test_IP40", "ip_address": "10.0.203.40"})
+    def test_ssh_port_timeout_reports_last_connection_error(
+        self, _deployment, _connect, _monotonic, _sleep, _find_vm
+    ):
+        args = type("Args", (), {"vm": "test_IP40", "timeout": 1})()
+
+        with self.assertRaisesRegex(ops.OpsError, "No route to host"):
+            ops.cmd_wait(args)
+
     @patch.object(ops.subprocess, "run")
     def test_ready_requires_marker_and_non_overlay_root(self, run):
         run.return_value.returncode = 0
@@ -275,7 +288,7 @@ class InstalledGuestTests(unittest.TestCase):
         self.assertIn("!= overlay", command[-1])
         self.assertEqual(run.call_args.kwargs["timeout"], 10)
 
-    @patch.object(ops, "installed_guest_ready", return_value=True)
+    @patch.object(ops, "installed_guest_check", return_value=(True, "installed guest is ready"))
     @patch.object(ops, "deployment", return_value={"vm_name": "test_IP40", "ip_address": "10.0.203.40"})
     def test_wait_installed_returns_only_for_installed_guest(self, _deployment, ready):
         args = type("Args", (), {"vm": "test_IP40", "timeout": 30})()
@@ -287,5 +300,15 @@ class InstalledGuestTests(unittest.TestCase):
     @patch.object(ops.subprocess, "run", side_effect=subprocess.TimeoutExpired("ssh", 10))
     def test_ssh_timeout_is_not_ready(self, _run):
         self.assertFalse(ops.installed_guest_ready("10.0.203.40"))
+
+    @patch.object(ops.subprocess, "run")
+    def test_failed_ssh_check_reports_authentication_error(self, run):
+        run.return_value.returncode = 255
+        run.return_value.stderr = "Permission denied (publickey).\n"
+
+        self.assertEqual(
+            ops.installed_guest_check("10.0.203.40"),
+            (False, "Permission denied (publickey)."),
+        )
 if __name__ == "__main__":
     unittest.main()

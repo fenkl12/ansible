@@ -22,7 +22,7 @@ from truenas_ops import (
     api,
     deployment,
     file_stat,
-    installed_guest_ready,
+    installed_guest_check,
     token,
 )
 
@@ -282,12 +282,16 @@ def completion_matches(
 
 def wait_installed(address: str, timeout: int = READY_TIMEOUT) -> None:
     deadline = time.monotonic() + timeout
+    last_reason = "guest has not been checked"
     while time.monotonic() < deadline:
-        if installed_guest_ready(address):
+        ready, last_reason = installed_guest_check(address)
+        if ready:
             print(f"Installed Ubuntu guest is ready at {address}")
             return
         time.sleep(POLL_INTERVAL)
-    raise InstallerError(f"Installed Ubuntu guest did not become ready at {address}")
+    raise InstallerError(
+        f"Installed Ubuntu guest did not become ready at {address}; last check: {last_reason}"
+    )
 
 
 def boot_installed_and_verify(

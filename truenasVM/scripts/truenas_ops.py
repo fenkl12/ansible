@@ -310,19 +310,24 @@ def cmd_wait(args: argparse.Namespace) -> None:
     item = deployment(args.vm)
     address = item["ip_address"]
     deadline = time.monotonic() + args.timeout
+    last_error = "SSH port has not been checked"
     while time.monotonic() < deadline:
         try:
             with socket.create_connection((address, 22), timeout=3):
                 print(f"SSH is ready at {address}")
                 return
-        except OSError:
+        except OSError as exc:
+            last_error = str(exc)
             time.sleep(5)
     vm = find_vm(item["vm_name"])
     detail = f"status={vm.get('status')} display={vm.get('display_available')}" if vm else "VM not found"
-    raise OpsError(f"SSH timeout at {address}; {detail}. Open the VM display in TrueNAS.")
+    raise OpsError(
+        f"SSH timeout at {address}; last connection error: {last_error}; {detail}. "
+        "Open the VM display in TrueNAS."
+    )
 
 
-def installed_guest_ready(address: str) -> bool:
+def installed_guest_check(address: str) -> tuple[bool, str]:
     command = [
         "ssh",
         "-o", "BatchMode=yes",
@@ -334,23 +339,40 @@ def installed_guest_ready(address: str) -> bool:
     ]
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=10)
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        return False, "SSH command timed out"
+    except OSError as exc:
+        return False, f"SSH command could not start: {exc}"
+    if result.returncode == 0:
+        return True, "installed guest is ready"
+    ssh_error = (result.stderr or "").strip().splitlines()
+    if ssh_error:
+        return False, ssh_error[-1][:240]
+    return False, f"SSH connected, but the installer marker or installed root check failed (exit {result.returncode})"
+
+
+def installed_guest_ready(address: str) -> bool:
+    ready, _ = installed_guest_check(address)
+    return ready
 
 
 def cmd_wait_installed(args: argparse.Namespace) -> None:
     item = deployment(args.vm)
     address = item["ip_address"]
     deadline = time.monotonic() + args.timeout
+    last_reason = "guest has not been checked"
     while time.monotonic() < deadline:
-        if installed_guest_ready(address):
+        ready, last_reason = installed_guest_check(address)
+        if ready:
             print(f"Installed guest is ready at {address}")
             return
         time.sleep(5)
     vm = find_vm(item["vm_name"])
     detail = f"status={vm.get('status')} display={vm.get('display_available')}" if vm else "VM not found"
-    raise OpsError(f"Installed guest timeout at {address}; {detail}. Open the VM display in TrueNAS.")
+    raise OpsError(
+        f"Installed guest timeout at {address}; last check: {last_reason}; {detail}. "
+        "Open the VM display in TrueNAS."
+    )
 
 
 def main() -> int:
