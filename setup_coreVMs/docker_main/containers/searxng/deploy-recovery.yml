@@ -1,0 +1,25 @@
+---
+- name: Schedule SearXNG recovery checks
+  hosts: docker_main
+  become: true
+
+  tasks:
+    - name: Check that the single-container deployment copied the script
+      ansible.builtin.stat:
+        path: /home/fenkil/pcData/searxng/recover-searxng-stack.sh
+      register: recovery_script
+
+    - name: Require the recovery script on the Docker host
+      ansible.builtin.assert:
+        that: recovery_script.stat.exists
+        fail_msg: Run ./deploy_single_container.sh searxng first.
+
+    - name: Run recovery every 30 minutes
+      ansible.builtin.cron:
+        name: Recover SearXNG after container updates
+        user: root
+        minute: '0,30'
+        job: /usr/bin/bash /home/fenkil/pcData/searxng/recover-searxng-stack.sh >> /var/log/recover-searxng-stack.log 2>&1
+
+    - name: Check the SearXNG pair now
+      ansible.builtin.command: /usr/bin/bash /home/fenkil/pcData/searxng/recover-searxng-stack.sh

@@ -35,7 +35,9 @@ services:
     network_mode: "service:gluetun"
 
     depends_on:
-      - gluetun
+      gluetun:
+        condition: service_healthy
+        restart: true
 
     environment:
       - SEARXNG_BASE_URL=http://localhost:8888/

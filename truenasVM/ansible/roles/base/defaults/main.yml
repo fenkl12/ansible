@@ -2,4 +2,6 @@
 vm_timezone: America/Toronto
 vm_packages: [ansible, autofs, cron, curl, gcc, git, htop, nfs-common, rsync, stow, tmux, wget, zsh]
 vm_login_user: fenkil
-
+vm_ssh_password_auth: true
+vm_enable_media_autofs: true
+vm_enable_dotfiles: true

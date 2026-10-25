@@ -106,6 +106,51 @@ never invoke it. Backup-enabled profiles run `backup-storage-check` before assig
 if either dataset, the writable NFS export, or the 30-day snapshot task is unavailable, they stop and tell
 the operator to run the one-time apply command.
 
+## MCP VM
+
+`mcpdocs_IP50` is dedicated to Docker and MCP services. Its deployment disables the usual
+media automount and dotfiles roles, reduces the base package list, and uses SSH keys instead of SSH
+password login. The `mcp-docs` profile installs Docker Engine and Compose v2, builds the pinned Context7
+image, and starts three persistent containers from the Compose template in this repository:
+
+```sh
+make provision-base VM=mcpdocs_IP50
+make setup-core VM=mcpdocs_IP50 PROFILE=mcp-docs
+```
+
+| Server | Client URL | Access |
+| --- | --- | --- |
+| Context7 | `http://10.0.203.50:8080/mcp` | LAN (`10.0.0.0/16`) |
+| Playwright | `http://10.0.203.50:8931/mcp` | LAN (`10.0.0.0/16`) |
+| GitHub | `http://10.0.203.50:8082/` | LAN (`10.0.0.0/16`); client bearer token required |
+
+The GitHub client must send `Authorization: Bearer <GITHUB_PAT>` with a token stored on the client, outside
+Git. The VM does not store a GitHub token. The GitHub server is pinned to read-only tools; remove the
+`--read-only` Compose argument only if write access is intentionally needed. Playwright runs headless
+Chromium with isolated browser sessions. Its browser state is not retained between sessions.
+
+All three use Streamable HTTP over plain HTTP. The GitHub bearer token therefore travels unencrypted on
+the LAN; use a narrowly scoped token and connect only from trusted clients. The guest firewall allows SSH
+and the three MCP ports only from `10.0.0.0/16`. Docker uses host networking so those rules apply to MCP
+traffic. The Docker API is not exposed.
+
+Context7 fetches indexed documentation from Context7's hosted service and needs outbound internet access.
+This deployment starts without a Context7 API key, so anonymous rate limits apply. Context7 provides
+documentation lookups, while the separate GitHub container accesses GitHub through each client's bearer
+token. Context7 search results depend on what Context7 has indexed.
+Live lookups confirmed `/github/docs`, `/websites/blender_api_current`, and `/freecad/freecad` as
+available library IDs at deployment time.
+
+The Compose project is `/opt/mcp-docs` on the guest. To inspect or reapply it:
+
+```sh
+ssh fenkil@10.0.203.50 'sudo docker compose -f /opt/mcp-docs/compose.yml ps'
+make reconcile VM=mcpdocs_IP50
+```
+
+If a Context7 API key is needed, store it outside Git and extend the profile to inject it securely before
+reconciling. Do not add the key to `ansible-vars.yml` or the Compose template.
+
 ## Docker-main profile
 
 The included `databases` profile installs Docker Engine from Docker's official Ubuntu repository,

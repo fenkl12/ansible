@@ -1,0 +1,93 @@
+---
+- name: Configure MCP core profile
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Install the guest firewall
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Set the default inbound firewall policy
+      ansible.builtin.command: ufw default deny incoming
+      changed_when: false
+
+    - name: Set the default outbound firewall policy
+      ansible.builtin.command: ufw default allow outgoing
+      changed_when: false
+
+    - name: Allow SSH from the LAN
+      ansible.builtin.command:
+        argv: [ufw, allow, from, "{{ mcp_docs_allowed_cidr }}", to, any, port, "22", proto, tcp]
+      register: mcp_docs_ssh_rule
+      changed_when: "'Rules updated' in mcp_docs_ssh_rule.stdout"
+
+    - name: Allow MCP servers from the LAN
+      ansible.builtin.command:
+        argv: [ufw, allow, from, "{{ mcp_docs_allowed_cidr }}", to, any, port, "{{ item }}", proto, tcp]
+      loop:
+        - "{{ mcp_docs_port }}"
+        - "{{ mcp_docs_playwright_port }}"
+        - "{{ mcp_docs_github_port }}"
+      register: mcp_docs_mcp_rule
+      changed_when: "'Rules updated' in mcp_docs_mcp_rule.stdout"
+
+    - name: Read firewall status
+      ansible.builtin.command: ufw status
+      register: mcp_docs_ufw_status
+      changed_when: false
+
+    - name: Enable the guest firewall
+      ansible.builtin.command: ufw --force enable
+      when: "'Status: active' not in mcp_docs_ufw_status.stdout"
+
+    - name: Install Docker Engine and Compose
+      ansible.builtin.include_role:
+        name: docker_engine
+      vars:
+        docker_engine_users: []
+
+    - name: Create the MCP Compose project directory
+      ansible.builtin.file:
+        path: "{{ mcp_docs_project_directory }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the pinned Context7 image definition
+      ansible.builtin.template:
+        src: Dockerfile.j2
+        dest: "{{ mcp_docs_project_directory }}/Dockerfile"
+        owner: root
+        group: root
+        mode: "0644"
+      register: mcp_docs_dockerfile
+
+    - name: Install the MCP Compose definition
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ mcp_docs_project_directory }}/compose.yml"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy MCP servers
+      community.docker.docker_compose_v2:
+        project_src: "{{ mcp_docs_project_directory }}"
+        state: present
+        build: "{{ 'always' if mcp_docs_dockerfile.changed else 'policy' }}"
+        remove_orphans: true
+
+    - name: Wait for MCP servers to listen
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item }}"
+        timeout: 90
+      loop:
+        - "{{ mcp_docs_port }}"
+        - "{{ mcp_docs_playwright_port }}"
+        - "{{ mcp_docs_github_port }}"

@@ -1,5 +1,10 @@
 {
   "deployments": {
+    "mcpdocs_IP50": {
+      "base_name": "mcpdocs",
+      "core_profile": "mcp-docs",
+      "ip_address": "10.0.203.50"
+    },
     "trial_IP40": {
       "base_name": "trial",
       "core_profile": "databases",

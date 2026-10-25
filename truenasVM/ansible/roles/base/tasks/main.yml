@@ -9,7 +9,7 @@
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
-- name: Install workstation packages
+- name: Install base packages
   ansible.builtin.apt:
     name: "{{ vm_packages }}"
     state: present
@@ -32,11 +32,17 @@
     password: "{{ vm_login_password_hash }}"
     update_password: always
   no_log: true
-- name: Enable SSH password authentication
+- name: Configure SSH password authentication
   ansible.builtin.copy:
-    dest: /etc/ssh/sshd_config.d/99-password-authentication.conf
-    content: "PasswordAuthentication yes\n"
+    dest: /etc/ssh/sshd_config.d/05-password-authentication.conf
+    content: "PasswordAuthentication {{ 'yes' if vm_ssh_password_auth | bool else 'no' }}\n"
     owner: root
     group: root
     mode: "0600"
+  notify: Restart SSH
+
+- name: Remove superseded SSH password authentication snippet
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/99-password-authentication.conf
+    state: absent
   notify: Restart SSH

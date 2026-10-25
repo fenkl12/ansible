@@ -11,4 +11,6 @@
   roles:
     - role: base
     - role: media_autofs
+      when: vm_enable_media_autofs | bool
     - role: dotfiles
+      when: vm_enable_dotfiles | bool

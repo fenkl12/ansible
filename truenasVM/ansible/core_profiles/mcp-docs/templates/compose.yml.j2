@@ -1,0 +1,38 @@
+services:
+  context7:
+    image: mcp-docs/context7:{{ mcp_docs_context7_version }}
+    build:
+      context: .
+    command: ["context7-mcp", "--transport", "http", "--port", "{{ mcp_docs_port }}"]
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+  playwright:
+    image: mcr.microsoft.com/playwright/mcp:{{ mcp_docs_playwright_version }}
+    entrypoint: ["node"]
+    command: ["/app/cli.js", "--headless", "--browser", "chromium", "--no-sandbox", "--isolated", "--port", "{{ mcp_docs_playwright_port }}", "--host", "0.0.0.0", "--allowed-hosts", "{{ ansible_host }}:{{ mcp_docs_playwright_port }},127.0.0.1:{{ mcp_docs_playwright_port }},localhost:{{ mcp_docs_playwright_port }}"]
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  github:
+    image: ghcr.io/github/github-mcp-server:{{ mcp_docs_github_version }}
+    command: ["http", "--port", "{{ mcp_docs_github_port }}", "--listen-host", "0.0.0.0", "--read-only"]
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
