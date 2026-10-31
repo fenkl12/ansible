@@ -7,8 +7,23 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Toronto
+      - PLAYWRIGHT_DRIVER_URL=ws://browser-sockpuppet-chrome:3000
+      - EXTRA_PACKAGES=changedetection.io-cloak-browser
     volumes:
       - /home/fenkil/pcData/changeDetection/config:/config
     ports:
       - 5000:5000
     restart: unless-stopped
+    depends_on:
+      - browser-sockpuppet-chrome
+
+  browser-sockpuppet-chrome:
+    image: dgtlmoon/sockpuppetbrowser:latest
+    restart: unless-stopped
+    init: true
+    shm_size: "1gb"
+    environment:
+      - CHROME_HEADFUL=true
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
+      - MAX_CONCURRENT_CHROME_PROCESSES=3

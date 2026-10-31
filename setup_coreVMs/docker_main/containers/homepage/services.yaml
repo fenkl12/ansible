@@ -174,6 +174,10 @@
         icon: mealie.png
         href: http://10.0.10.30:4005
         description: Recipe manager and meal planner.
+    - n8n:
+        icon: n8n.png
+        href: http://10.0.10.30:5678
+        description: Workflow automation.
     - Resume Reactive:
         icon: resume.png
         href: http://10.0.10.30:3080/dashboard/resumes
