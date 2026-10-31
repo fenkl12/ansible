@@ -111,7 +111,8 @@ the operator to run the one-time apply command.
 `mcpdocs_IP50` is dedicated to Docker and MCP services. Its deployment disables the usual
 media automount and dotfiles roles, reduces the base package list, and uses SSH keys instead of SSH
 password login. The `mcp-docs` profile installs Docker Engine and Compose v2, builds the pinned Context7
-image, and starts three persistent containers from the Compose template in this repository:
+image, builds pinned Pascal and Semantica MCP images, and starts six persistent containers (five MCP
+servers plus Pascal's forwarding container) from the Compose template in this repository:
 
 ```sh
 make provision-base VM=mcpdocs_IP50
@@ -123,16 +124,19 @@ make setup-core VM=mcpdocs_IP50 PROFILE=mcp-docs
 | Context7 | `http://10.0.203.50:8080/mcp` | LAN (`10.0.0.0/16`) |
 | Playwright | `http://10.0.203.50:8931/mcp` | LAN (`10.0.0.0/16`) |
 | GitHub | `http://10.0.203.50:8082/` | LAN (`10.0.0.0/16`); client bearer token required |
+| Pascal | `http://10.0.203.50:8083/mcp` | LAN (`10.0.0.0/16`); no authentication |
+| Semantica | `http://10.0.203.50:8084/mcp` | LAN (`10.0.0.0/16`); no authentication |
 
 The GitHub client must send `Authorization: Bearer <GITHUB_PAT>` with a token stored on the client, outside
 Git. The VM does not store a GitHub token. The GitHub server is pinned to read-only tools; remove the
 `--read-only` Compose argument only if write access is intentionally needed. Playwright runs headless
 Chromium with isolated browser sessions. Its browser state is not retained between sessions.
 
-All three use Streamable HTTP over plain HTTP. The GitHub bearer token therefore travels unencrypted on
-the LAN; use a narrowly scoped token and connect only from trusted clients. The guest firewall allows SSH
-and the three MCP ports only from `10.0.0.0/16`. Docker uses host networking so those rules apply to MCP
-traffic. The Docker API is not exposed.
+All five servers use Streamable HTTP over plain HTTP. The GitHub bearer token travels unencrypted on
+the LAN; use a narrowly scoped token. Pascal and Semantica require no token: clients on the allowed LAN
+can read and change their shared data. The guest firewall allows SSH and the five MCP ports only from
+`10.0.0.0/16`. Docker uses host networking so those rules apply to MCP traffic. The Docker API is not
+exposed. Pascal's native listener at `127.0.0.1:18083` is accessible only inside the VM.
 
 Context7 fetches indexed documentation from Context7's hosted service and needs outbound internet access.
 This deployment starts without a Context7 API key, so anonymous rate limits apply. Context7 provides
@@ -150,6 +154,75 @@ make reconcile VM=mcpdocs_IP50
 
 If a Context7 API key is needed, store it outside Git and extend the profile to inject it securely before
 reconciling. Do not add the key to `ansible-vars.yml` or the Compose template.
+
+### Pascal MCP
+
+Pascal runs only its headless MCP server; the browser editor is not installed. Configure a client
+for Streamable HTTP at `http://10.0.203.50:8083/mcp` without authentication.
+
+The native Pascal server permits unauthenticated access when bound to loopback. It listens at
+`127.0.0.1:18083`; a non-root Nginx container forwards the existing LAN port `8083` to it. Forwarding
+preserves MCP session headers and streaming responses. Incoming authorization headers are discarded,
+so clients that still send the previous token continue working. The profile removes the obsolete
+`/opt/mcp-docs/pascal.env` file and no longer generates a token. Local client configurations and any
+old client-side credentials are left unchanged.
+
+Saved projects and geometry artifacts live in the `mcp-docs_pascal-data` Docker volume, mounted at
+`/data`. Ask the agent to save its scene with Pascal's `save_scene` tool; load it in a later session
+with `load_scene`. Unsaved session state is not a backup. Container recreation retains the volume;
+`docker compose down -v` deletes it. Automated backups are not configured for this VM.
+
+The reproducible service configuration is in `ansible/core_profiles/mcp-docs/`: `vars.yml`, `site.yml`,
+and the Compose and Dockerfile templates. Pascal MCP and core are pinned to `1.0.6`, with Node pinned
+to `22.23.4-alpine`; versions and the port can be adjusted through the profile variables. Upstream:
+[Pascal MCP documentation](https://github.com/pascalorg/editor/blob/main/packages/mcp/README.md).
+
+To recreate the service on a replacement `mcpdocs_IP50`, provision the base and apply the `mcp-docs`
+profile using the commands above. On an existing guest, run `make setup-core VM=mcpdocs_IP50`.
+Rebuilding installs the service; restoring previous projects additionally requires a backup of the
+complete data volume. Back up that volume separately if disaster recovery is needed.
+
+
+### Semantica MCP
+
+Semantica is available at `http://10.0.203.50:8084/mcp` using Streamable HTTP, without authentication.
+Only the server is deployed; this profile does not configure Codex or Pi clients.
+
+The container runs `semantica==0.7.0` with `mcp-proxy==0.13.0`. Semantica's native server uses stdio;
+the proxy starts one long-lived upstream process and shares it across HTTP sessions, so clients see
+one graph. No Explorer UI, FalkorDB, external model provider, or local AI models are installed.
+The image applies a guarded compatibility fix for 0.7.0's summary tool: it counts the graph's stored
+edges instead of reporting zero when the graph class lacks an `edge_count()` method. The build fails
+if an upgrade changes the targeted source, requiring the fix to be reviewed.
+
+The supported initial workflow is entities and relationships, graph search and summaries, decisions,
+causal chains, rule-based reasoning, analytics, and exports. The upstream tool catalog is retained;
+extraction and semantic retrieval tools that need optional model dependencies are not supported by
+this core-only installation. Do not interpret a fallback or missing-model result as model-based
+semantic extraction or similarity.
+
+Graph mutations persist to `/data/knowledge_graph.json` in the `mcp-docs_semantica-data` volume.
+Container recreation retains this volume. Back it up separately to restore data after VM loss;
+automated backups are not configured. `docker compose down -v` deletes both MCP data volumes.
+
+Dockerfiles, forwarding configuration, Compose settings, and the complete hash-verified Python
+requirements lock are stored under `ansible/core_profiles/mcp-docs`. The Python base image and Nginx
+image are pinned by digest in `vars.yml`. Reapply with `make setup-core VM=mcpdocs_IP50`; a replacement
+VM uses the base provisioning and core setup commands above.
+
+To intentionally update the Python dependency lock from the repository root, use `uv==0.13.6`:
+
+```sh
+uv pip compile --python-version 3.13 --python-platform x86_64-manylinux_2_28 \
+  --generate-hashes --only-binary :all: \
+  --output-file ansible/core_profiles/mcp-docs/files/semantica-requirements.txt \
+  ansible/core_profiles/mcp-docs/files/semantica-requirements.in
+```
+
+The lock targets this VM's Linux x86_64 / Python 3.13 runtime. Update and validate the pins in the
+input file and Compose image label together when upgrading Semantica or its adapter.
+Upstream: [Semantica MCP](https://github.com/semantica-agi/semantica/tree/v0.7.0/semantica_mcp/mcp),
+[MCP transport adapter](https://github.com/sparfenyuk/mcp-proxy/tree/v0.13.0).
 
 ## Docker-main profile
 

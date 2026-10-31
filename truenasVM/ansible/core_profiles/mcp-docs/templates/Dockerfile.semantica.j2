@@ -1,0 +1,21 @@
+FROM {{ mcp_docs_semantica_python_image }}
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    SEMANTICA_DISABLE_PROGRESS=1 \
+    SEMANTICA_KG_PATH=/data/knowledge_graph.json \
+    OPENBLAS_NUM_THREADS=1 \
+    OMP_NUM_THREADS=1
+
+WORKDIR /app
+COPY semantica-requirements.txt ./
+COPY semantica-compat.py ./
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r semantica-requirements.txt \
+    && python semantica-compat.py \
+    && useradd --uid 10001 --user-group --home-dir /data --no-create-home semantica \
+    && mkdir -p /data \
+    && chown semantica:semantica /data
+
+USER semantica
+VOLUME /data
+ENTRYPOINT ["mcp-proxy"]

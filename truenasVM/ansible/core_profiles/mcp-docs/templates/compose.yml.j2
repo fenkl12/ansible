@@ -36,3 +36,63 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+
+  pascal:
+    image: mcp-docs/pascal:{{ mcp_docs_pascal_version }}-node{{ mcp_docs_pascal_node_version }}
+    build:
+      context: .
+      dockerfile: Dockerfile.pascal
+    command: ["--http", "--host", "127.0.0.1", "--port", "{{ mcp_docs_pascal_internal_port }}", "--cors-origin", "http://{{ ansible_host }}:{{ mcp_docs_pascal_port }}"]
+    volumes:
+      - pascal-data:/data
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+  pascal-proxy:
+    image: {{ mcp_docs_pascal_proxy_image }}
+    entrypoint: ["nginx"]
+    command: ["-g", "daemon off;"]
+    volumes:
+      - ./pascal-nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - pascal
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+  semantica:
+    image: mcp-docs/semantica:0.7.0-proxy0.13.0
+    build:
+      context: .
+      dockerfile: Dockerfile.semantica
+    command: ["--host=0.0.0.0", "--port={{ mcp_docs_semantica_port }}", "--pass-environment", "--", "python", "-m", "semantica_mcp.mcp"]
+    volumes:
+      - semantica-data:/data
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+
+volumes:
+  pascal-data:
+  semantica-data:

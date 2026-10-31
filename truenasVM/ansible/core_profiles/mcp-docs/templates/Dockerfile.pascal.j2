@@ -1,0 +1,14 @@
+FROM node:{{ mcp_docs_pascal_node_version }}
+
+WORKDIR /app
+RUN npm install --omit=dev --save-exact \
+      @pascal-app/mcp@{{ mcp_docs_pascal_version }} \
+      @pascal-app/core@{{ mcp_docs_pascal_version }} \
+    && npm cache clean --force \
+    && mkdir -p /data \
+    && chown node:node /data
+
+ENV NODE_ENV=production PASCAL_DATA_DIR=/data
+USER node
+VOLUME /data
+ENTRYPOINT ["node", "/app/node_modules/@pascal-app/mcp/dist/bin/pascal-mcp.js"]

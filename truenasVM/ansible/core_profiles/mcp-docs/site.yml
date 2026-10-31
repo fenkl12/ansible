@@ -32,6 +32,8 @@
         - "{{ mcp_docs_port }}"
         - "{{ mcp_docs_playwright_port }}"
         - "{{ mcp_docs_github_port }}"
+        - "{{ mcp_docs_pascal_port }}"
+        - "{{ mcp_docs_semantica_port }}"
       register: mcp_docs_mcp_rule
       changed_when: "'Rules updated' in mcp_docs_mcp_rule.stdout"
 
@@ -67,10 +69,69 @@
         mode: "0644"
       register: mcp_docs_dockerfile
 
+    - name: Install the pinned Pascal MCP image definition
+      ansible.builtin.template:
+        src: Dockerfile.pascal.j2
+        dest: "{{ mcp_docs_project_directory }}/Dockerfile.pascal"
+        owner: root
+        group: root
+        mode: "0644"
+      register: mcp_docs_pascal_dockerfile
+
+    - name: Install the pinned Semantica MCP image definition
+      ansible.builtin.template:
+        src: Dockerfile.semantica.j2
+        dest: "{{ mcp_docs_project_directory }}/Dockerfile.semantica"
+        owner: root
+        group: root
+        mode: "0644"
+      register: mcp_docs_semantica_dockerfile
+
+    - name: Install the locked Semantica dependencies
+      ansible.builtin.copy:
+        src: semantica-requirements.txt
+        dest: "{{ mcp_docs_project_directory }}/semantica-requirements.txt"
+        owner: root
+        group: root
+        mode: "0644"
+      register: mcp_docs_semantica_requirements
+
+    - name: Install the Semantica summary compatibility fix
+      ansible.builtin.copy:
+        src: semantica-compat.py
+        dest: "{{ mcp_docs_project_directory }}/semantica-compat.py"
+        owner: root
+        group: root
+        mode: "0644"
+      register: mcp_docs_semantica_compat
+
+    - name: Install the Pascal LAN forwarding configuration
+      ansible.builtin.template:
+        src: pascal-nginx.conf.j2
+        dest: "{{ mcp_docs_project_directory }}/pascal-nginx.conf"
+        owner: root
+        group: root
+        mode: "0644"
+      register: mcp_docs_pascal_proxy_config
+
+    - name: Exclude credentials from Docker build contexts
+      ansible.builtin.copy:
+        content: "*.env\n"
+        dest: "{{ mcp_docs_project_directory }}/.dockerignore"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Remove the obsolete Pascal MCP credentials
+      ansible.builtin.file:
+        path: "{{ mcp_docs_project_directory }}/pascal.env"
+        state: absent
+
     - name: Install the MCP Compose definition
       ansible.builtin.template:
         src: compose.yml.j2
         dest: "{{ mcp_docs_project_directory }}/compose.yml"
+        validate: "docker compose --project-directory {{ mcp_docs_project_directory }} -f %s config --quiet"
         owner: root
         group: root
         mode: "0644"
@@ -79,8 +140,21 @@
       community.docker.docker_compose_v2:
         project_src: "{{ mcp_docs_project_directory }}"
         state: present
-        build: "{{ 'always' if mcp_docs_dockerfile.changed else 'policy' }}"
+        build: "{{ 'always' if (mcp_docs_dockerfile.changed or mcp_docs_pascal_dockerfile.changed or mcp_docs_semantica_dockerfile.changed or mcp_docs_semantica_requirements.changed or mcp_docs_semantica_compat.changed) else 'policy' }}"
         remove_orphans: true
+
+    - name: Validate the Pascal forwarding configuration
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, pascal-proxy, nginx, -t]
+        chdir: "{{ mcp_docs_project_directory }}"
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Reload updated Pascal forwarding configuration
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, pascal-proxy, nginx, -s, reload]
+        chdir: "{{ mcp_docs_project_directory }}"
+      when: mcp_docs_pascal_proxy_config.changed and not ansible_check_mode
 
     - name: Wait for MCP servers to listen
       ansible.builtin.wait_for:
@@ -91,3 +165,5 @@
         - "{{ mcp_docs_port }}"
         - "{{ mcp_docs_playwright_port }}"
         - "{{ mcp_docs_github_port }}"
+        - "{{ mcp_docs_pascal_port }}"
+        - "{{ mcp_docs_semantica_port }}"

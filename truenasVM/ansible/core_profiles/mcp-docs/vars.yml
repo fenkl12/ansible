@@ -6,4 +6,11 @@ mcp_docs_playwright_version: "v0.0.83"
 mcp_docs_playwright_port: 8931
 mcp_docs_github_version: "v2.0.2"
 mcp_docs_github_port: 8082
+mcp_docs_pascal_version: "1.0.6"
+mcp_docs_pascal_node_version: "22.23.4-alpine"
+mcp_docs_pascal_port: 8083
+mcp_docs_pascal_internal_port: 18083
+mcp_docs_pascal_proxy_image: "nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03"
+mcp_docs_semantica_python_image: "python:3.13-slim@sha256:8d9d0b8bcf6506481eae4907c18f5e3e7902e629f5f6d684f9e7c32e85e3ddf0"
+mcp_docs_semantica_port: 8084
 mcp_docs_allowed_cidr: 10.0.0.0/16

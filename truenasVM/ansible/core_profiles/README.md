@@ -17,5 +17,5 @@ reconciliation removes it from existing guests as well as omitting it from clean
 - `databases`: installs Docker Engine and Compose v2, deploys Portainer, assigns a configurable hostname,
   and configures consistent nightly pcData backups. Its manifest requires healthy shared backup storage
   before profile assignment or execution.
-- `mcp-docs`: installs Docker Engine and Compose v2, runs pinned Context7, Playwright, and GitHub MCP
+- `mcp-docs`: installs Docker Engine and Compose v2, runs pinned Context7, Playwright, GitHub, Pascal, and Semantica MCP
   containers, and limits SSH and MCP ingress to the LAN. It does not need shared backup storage.
